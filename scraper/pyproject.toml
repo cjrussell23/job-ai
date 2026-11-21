@@ -1,0 +1,34 @@
+[project]
+name = "job-ai-scraper"
+version = "0.1.0"
+description = "Thin HTTP wrapper around JobSpy for the job-ai worker"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.165.0",
+    "python-jobspy>=1.5",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+job-ai-scraper = "job_ai_scraper.app:main"
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "BLE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -52,10 +52,23 @@ services:
     environment:
       <<: *app-env
       SERVICE_NAME: worker
+      SCRAPER_URL: http://scraper:8000
     command: ["npm", "run", "worker"]
     depends_on:
       web:
         condition: service_started
+      scraper:
+        condition: service_started
+
+  # JobSpy wrapper for Indeed and LinkedIn; reachable only by the worker on the stack's network.
+  scraper:
+    image: ghcr.io/cjrussell23/job-ai-scraper:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   backup:
     image: ghcr.io/cjrussell23/job-ai-backup:${IMAGE_TAG:-latest}

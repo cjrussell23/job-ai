@@ -37,8 +37,10 @@ export async function ingestPostings(
 
   for (const posting of scraped) {
     result.boardLinks.push(...(posting.description.match(boardLink) ?? []));
-    if (boardLink.test(posting.url)) result.boardLinks.push(posting.url);
-    boardLink.lastIndex = 0;
+    for (const link of [posting.url, posting.applyUrl]) {
+      if (link && boardLink.test(link)) result.boardLinks.push(link);
+      boardLink.lastIndex = 0;
+    }
 
     await db().transaction(async (tx) => {
       const [existing] = await tx
@@ -106,7 +108,7 @@ type Tx = Parameters<Parameters<ReturnType<typeof db>["transaction"]>[0]>[0];
 async function enrichJob(tx: Tx, jobId: string, posting: ScrapedPosting) {
   const [job] = await tx.select().from(jobs).where(eq(jobs.id, jobId));
   if (!job) return;
-  const system = applicationSystem(posting.url);
+  const system = applicationSystem(posting.applyUrl ?? posting.url);
   const update: Partial<typeof jobs.$inferInsert> = {};
   if (posting.description.length > job.description.length) update.description = posting.description;
   if (job.payPeriod === null && posting.pay) {
