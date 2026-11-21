@@ -22,6 +22,8 @@ export const members = pgTable("members", {
   targetFitWeight: integer("target_fit_weight").notNull().default(60),
   /** Monthly AI spend cap in cents; null means the app-wide default. */
   spendCapCents: integer("spend_cap_cents"),
+  /** Last change to the master profile that can affect profile fit. */
+  profileChangedAt: timestamp("profile_changed_at", { withTimezone: true }),
   invitedAt: timestamp("invited_at", { withTimezone: true }).notNull().defaultNow(),
   firstSignInAt: timestamp("first_sign_in_at", { withTimezone: true }),
 });

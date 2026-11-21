@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireMember } from "@/features/members/session";
+import { refilterTarget } from "@/features/scoring/rescore";
 import { log } from "@/lib/log";
 import { queue, queues } from "@/lib/queue";
 import {
@@ -65,6 +66,9 @@ export async function saveTargetAction(_: FormState, form: FormData): Promise<Fo
   }
   // A new or changed role type gets fresh search title suggestions.
   if (result.roleTypeChanged) await requestTitles(userId, result.id);
+  // Firm limits apply to the feed at once; no model call is involved.
+  if (id) await refilterTarget(userId, result.id);
+  revalidatePath("/");
   revalidatePath("/targets");
   return { message: "Saved." };
 }

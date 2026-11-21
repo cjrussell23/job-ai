@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, max, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
 import { type ProfileItem, profileItems, type ResumeUpload, resumeUploads } from "@/db/schema";
+import { markProfileChanged } from "@/features/members/members";
 
 export type { ProfileItem, ResumeUpload };
 
@@ -81,6 +82,7 @@ export async function createItem(
     .values({ ...input, userId, source, position: await nextPosition(userId, input.parentId) })
     .returning({ id: profileItems.id });
   if (!created) return { ok: false, reason: "invalid" };
+  await markProfileChanged(userId);
   return { ok: true, id: created.id };
 }
 
@@ -108,7 +110,9 @@ export async function updateItem(
     .set({ ...parsed.data, updatedAt: sql`now()` })
     .where(and(eq(profileItems.id, itemId), eq(profileItems.userId, userId)))
     .returning({ id: profileItems.id });
-  return updated[0] ? { ok: true, id: itemId } : { ok: false, reason: "not_found" };
+  if (!updated[0]) return { ok: false, reason: "not_found" };
+  await markProfileChanged(userId);
+  return { ok: true, id: itemId };
 }
 
 /** Deletes an item and, through the parent link, its bullets. */
@@ -117,7 +121,9 @@ export async function deleteItem(userId: string, itemId: string): Promise<ItemRe
     .delete(profileItems)
     .where(and(eq(profileItems.id, itemId), eq(profileItems.userId, userId)))
     .returning({ id: profileItems.id });
-  return deleted[0] ? { ok: true, id: itemId } : { ok: false, reason: "not_found" };
+  if (!deleted[0]) return { ok: false, reason: "not_found" };
+  await markProfileChanged(userId);
+  return { ok: true, id: itemId };
 }
 
 /** Swaps an item with its neighbour among items of the same type and parent. */
@@ -213,41 +219,46 @@ export async function saveParsedItems(
   uploadId: string,
   items: ParsedItem[],
 ): Promise<number> {
-  return db().transaction(async (tx) => {
-    const [row] = await tx
-      .select({ top: max(profileItems.position) })
-      .from(profileItems)
-      .where(and(eq(profileItems.userId, userId), isNull(profileItems.parentId)));
-    let position = (row?.top ?? -1) + 1;
-    let created = 0;
-    for (const item of items) {
-      const { bullets, ...fields } = item;
-      const [parent] = await tx
-        .insert(profileItems)
-        .values({ ...fields, userId, source: "upload", position: position++ })
-        .returning({ id: profileItems.id });
-      created++;
-      const kept = parentTypes.includes(item.type) ? bullets.filter((b) => b.trim()) : [];
-      if (parent && kept.length > 0) {
-        await tx.insert(profileItems).values(
-          kept.map((content, i) => ({
-            userId,
-            type: "bullet" as const,
-            parentId: parent.id,
-            content: content.trim(),
-            source: "upload" as const,
-            position: i,
-          })),
-        );
-        created += kept.length;
+  return db()
+    .transaction(async (tx) => {
+      const [row] = await tx
+        .select({ top: max(profileItems.position) })
+        .from(profileItems)
+        .where(and(eq(profileItems.userId, userId), isNull(profileItems.parentId)));
+      let position = (row?.top ?? -1) + 1;
+      let created = 0;
+      for (const item of items) {
+        const { bullets, ...fields } = item;
+        const [parent] = await tx
+          .insert(profileItems)
+          .values({ ...fields, userId, source: "upload", position: position++ })
+          .returning({ id: profileItems.id });
+        created++;
+        const kept = parentTypes.includes(item.type) ? bullets.filter((b) => b.trim()) : [];
+        if (parent && kept.length > 0) {
+          await tx.insert(profileItems).values(
+            kept.map((content, i) => ({
+              userId,
+              type: "bullet" as const,
+              parentId: parent.id,
+              content: content.trim(),
+              source: "upload" as const,
+              position: i,
+            })),
+          );
+          created += kept.length;
+        }
       }
-    }
-    await tx
-      .update(resumeUploads)
-      .set({ state: "done", itemsCreated: created })
-      .where(and(eq(resumeUploads.id, uploadId), eq(resumeUploads.userId, userId)));
-    return created;
-  });
+      await tx
+        .update(resumeUploads)
+        .set({ state: "done", itemsCreated: created })
+        .where(and(eq(resumeUploads.id, uploadId), eq(resumeUploads.userId, userId)));
+      return created;
+    })
+    .then(async (created) => {
+      await markProfileChanged(userId);
+      return created;
+    });
 }
 
 /** Deletes the given items if they belong to the user. Used by tests and future bulk edits. */
@@ -256,6 +267,7 @@ export async function deleteItems(userId: string, ids: string[]): Promise<void> 
   await db()
     .delete(profileItems)
     .where(and(eq(profileItems.userId, userId), inArray(profileItems.id, ids)));
+  await markProfileChanged(userId);
 }
 
 /** Role titles and skills only: enough for other features to tailor a search, nothing more. */

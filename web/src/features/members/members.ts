@@ -121,3 +121,11 @@ export async function updateMemberSettings(
   await db().update(members).set(settings).where(eq(members.userId, userId));
   return { ok: true };
 }
+
+/** Records that the member's profile changed in a way that can affect profile fit. */
+export async function markProfileChanged(userId: string): Promise<void> {
+  await db()
+    .update(members)
+    .set({ profileChangedAt: sql`now()` })
+    .where(eq(members.userId, userId));
+}

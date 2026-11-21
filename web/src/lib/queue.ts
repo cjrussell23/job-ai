@@ -9,6 +9,7 @@ export const queues = {
   dailyRun: "daily-run",
   parseResume: "parse-resume",
   proposeSearchTitles: "propose-search-titles",
+  rescore: "rescore",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];

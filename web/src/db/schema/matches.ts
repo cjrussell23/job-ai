@@ -50,3 +50,13 @@ export const jobMatches = pgTable(
 );
 
 export type JobMatch = typeof jobMatches.$inferSelect;
+
+/** Each use of the rescore button, for the admin's daily limit. */
+export const rescoreRequests = pgTable("rescore_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+});

@@ -7,7 +7,7 @@ import { createItem } from "@/features/profile/profile";
 import { parsePostings } from "@/features/sources/source";
 import { approveSearchTitles, createTarget, type TargetInput } from "@/features/targets/targets";
 import { resetDb } from "@/test/db";
-import { useFakeModel } from "@/test/fake-model";
+import { fakeModel } from "@/test/fake-model";
 import { createMember } from "@/test/fixtures";
 import { dismissJob, feedForUser } from "./feed";
 import { createMatches, scoreAfterRun } from "./score";
@@ -77,7 +77,7 @@ describe("matching and firm limits", () => {
     });
     await addJob({ url: "https://ca.indeed.com/viewjob?jk=none", company: "No Pay Cafe" });
 
-    const fake = useFakeModel(replies);
+    const fake = fakeModel(replies);
     restore = fake.restore;
     const summary = await scoreAfterRun();
 
@@ -131,7 +131,7 @@ describe("pay estimates", () => {
   test("a job without stated pay gets one shared, labelled estimate; it never counts toward a member's cap", async () => {
     await member("a@example.com");
     await addJob();
-    restore = useFakeModel(replies).restore;
+    restore = fakeModel(replies).restore;
     await scoreAfterRun();
     const [job] = await db().select().from(jobs);
     expect(job).toMatchObject({
@@ -151,7 +151,7 @@ describe("the feed", () => {
     const bob = await member("bob@example.com", { roleType: "Bean tester" });
     await addJob({ url: "https://ca.indeed.com/viewjob?jk=1", company: "First Cafe" });
     await addJob({ url: "https://ca.indeed.com/viewjob?jk=2", company: "Second Cafe" });
-    restore = useFakeModel(replies).restore;
+    restore = fakeModel(replies).restore;
     await scoreAfterRun();
 
     const feed = await feedForUser(alice.userId, 60);
@@ -175,7 +175,7 @@ describe("the feed", () => {
     await member("bob@example.com");
     await createItem(alice.userId, { type: "skill", title: "Latte art" });
     await addJob();
-    const fake = useFakeModel(replies);
+    const fake = fakeModel(replies);
     restore = fake.restore;
     await scoreAfterRun();
     const profilePrompts = fake.calls

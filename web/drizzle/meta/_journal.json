@@ -71,6 +71,13 @@
       "when": 1795250709310,
       "tag": "0009_matches-and-pay-estimates",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795251369130,
+      "tag": "0010_rescore",
+      "breakpoints": true
     }
   ]
 }

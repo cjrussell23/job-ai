@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, test } from "vitest"
 import { closeDb } from "@/db/client";
 import { createItem } from "@/features/profile/profile";
 import { resetDb } from "@/test/db";
-import { useFakeModel } from "@/test/fake-model";
+import { fakeModel } from "@/test/fake-model";
 import { createMember } from "@/test/fixtures";
 import { proposeTitlesForTarget } from "./propose-titles";
 import {
@@ -92,7 +92,7 @@ describe("proposing search titles", () => {
     await createItem(userId, { type: "role", title: "Software Developer" });
     const id = await newTarget(userId);
     await approveSearchTitles(userId, id, ["Backend Engineer"]);
-    const fake = useFakeModel({
+    const fake = fakeModel({
       titles: ["Backend Engineer", "Backend Developer", "API Engineer"],
     });
     restore = fake.restore;
@@ -110,7 +110,7 @@ describe("proposing search titles", () => {
   test("a failed suggestion is shown as failed and changes nothing else", async () => {
     const userId = await createMember("a@example.com");
     const id = await newTarget(userId);
-    restore = useFakeModel({ titles: [] }).restore;
+    restore = fakeModel({ titles: [] }).restore;
     await proposeTitlesForTarget(userId, id);
     const target = await getTarget(userId, id);
     expect(target?.searchTitleState).toBe("failed");

@@ -3,6 +3,7 @@ import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
 import { parseUpload } from "@/features/profile/parse-upload";
 import { executeRun, startScheduledRunIfDue } from "@/features/runs/daily-run";
+import { runRescore } from "@/features/scoring/rescore";
 import { scoreAfterRun } from "@/features/scoring/score";
 import { registerAllSources } from "@/features/sources";
 import { proposeTitlesForTarget } from "@/features/targets/propose-titles";
@@ -56,6 +57,15 @@ async function main() {
     }
   });
   await checkSchedule();
+
+  const rescoreJob = z.object({ userId: z.string(), requestId: z.uuid() });
+  await boss.work(queues.rescore, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, requestId } = rescoreJob.parse(job.data);
+      const { scored } = await runRescore(userId, requestId);
+      log.info({ requestId, scored }, "rescore finished");
+    }
+  });
 
   log.info("worker started");
 

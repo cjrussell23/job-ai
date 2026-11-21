@@ -89,12 +89,15 @@ export async function createMatches(): Promise<{ created: number; hidden: number
  * Scores every match that passed its firm limits and is missing a score. Each
  * member's profile is read once, and each target described once.
  */
-export async function scoreUnscoredMatches(): Promise<{ scored: number; failed: number }> {
+export async function scoreUnscoredMatches(
+  options: { userId?: string } = {},
+): Promise<{ scored: number; failed: number }> {
   const pending = await db()
     .select()
     .from(jobMatches)
     .where(
       and(
+        options.userId ? eq(jobMatches.userId, options.userId) : undefined,
         eq(jobMatches.firmLimitResult, "pass"),
         eq(jobMatches.dismissed, false),
         or(isNull(jobMatches.targetScoredAt), isNull(jobMatches.profileScoredAt)),

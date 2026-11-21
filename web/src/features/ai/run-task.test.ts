@@ -4,7 +4,7 @@ import { closeDb, db } from "@/db/client";
 import { aiUsage } from "@/db/schema";
 import { setSetting } from "@/features/admin/settings";
 import { resetDb } from "@/test/db";
-import { useFakeModel } from "@/test/fake-model";
+import { fakeModel } from "@/test/fake-model";
 import { createMember } from "@/test/fixtures";
 import { setPriceListForTests } from "./pricing";
 import { runTask } from "./run-task";
@@ -36,7 +36,7 @@ afterAll(closeDb);
 
 test("returns validated output and records usage and cost", async () => {
   const userId = await createMember("a@example.com");
-  const fake = useFakeModel({ words: ["hello", "world"] });
+  const fake = fakeModel({ words: ["hello", "world"] });
   restore = fake.restore;
 
   const result = await runTask(userId, echoTask, { text: "hello world" });
@@ -60,7 +60,7 @@ test("uses the model chosen in the admin settings", async () => {
     draftCoverLetter: "anthropic/claude-sonnet-5.5",
     tailorResume: "anthropic/claude-sonnet-5.5",
   });
-  const fake = useFakeModel({ words: [] });
+  const fake = fakeModel({ words: [] });
   restore = fake.restore;
   await runTask(userId, echoTask, { text: "" });
   expect(fake.calls[0]?.modelId).toBe("anthropic/claude-sonnet-5.5");
@@ -68,7 +68,7 @@ test("uses the model chosen in the admin settings", async () => {
 
 test("output that fails the schema is refused but still counted", async () => {
   const userId = await createMember("a@example.com");
-  const fake = useFakeModel({ words: "not an array" });
+  const fake = fakeModel({ words: "not an array" });
   restore = fake.restore;
 
   expect(await runTask(userId, echoTask, { text: "x" })).toEqual({
@@ -89,7 +89,7 @@ test("at the cap, optional tasks are refused without calling the model", async (
     outputTokens: 1,
     costUsd: 1.0,
   });
-  const fake = useFakeModel({ words: [] });
+  const fake = fakeModel({ words: [] });
   restore = fake.restore;
 
   expect(await runTask(userId, echoTask, { text: "x" })).toEqual({
@@ -114,7 +114,7 @@ test("usage is counted per member", async () => {
     outputTokens: 1,
     costUsd: 5,
   });
-  const fake = useFakeModel({ words: [] });
+  const fake = fakeModel({ words: [] });
   restore = fake.restore;
   expect((await runTask(b, echoTask, { text: "x" })).ok).toBe(true);
 });
@@ -130,7 +130,7 @@ test("a model missing from the gateway price list is costed at the high fallback
     draftCoverLetter: "anthropic/claude-sonnet-5.5",
     tailorResume: "anthropic/claude-sonnet-5.5",
   });
-  restore = useFakeModel({ words: [] }).restore;
+  restore = fakeModel({ words: [] }).restore;
   await runTask(userId, echoTask, { text: "x" });
   const [usage] = await db().select().from(aiUsage);
   // 1,000 x $15/M + 500 x $75/M.
