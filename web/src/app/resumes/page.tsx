@@ -83,14 +83,22 @@ async function Resumes() {
                   </p>
                 </div>
                 {r.state === "approved" && (
-                  <a
-                    href={`/documents/${r.id}/pdf`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
-                  >
-                    Download PDF
-                  </a>
+                  <div className="flex gap-2">
+                    <a
+                      href={`/documents/${r.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Download PDF
+                    </a>
+                    <a
+                      href={`/documents/${r.id}/docx`}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Word
+                    </a>
+                  </div>
                 )}
               </li>
             ))}

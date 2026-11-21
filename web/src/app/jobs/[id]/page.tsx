@@ -85,6 +85,12 @@ function DocumentCard({ doc, jobId }: { doc: Document; jobId: string }) {
               >
                 {doc.state === "approved" ? "Download PDF" : "Preview PDF"}
               </a>
+              <a
+                href={`/documents/${doc.id}/docx`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Word
+              </a>
             </div>
           </>
         )}

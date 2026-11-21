@@ -131,7 +131,7 @@ function dateValue(text: string): number | null {
 }
 
 /** "Jan 2023 – Present": the earliest start to the latest end, whatever order is shown. */
-function spanOf(group: ResumeEntry[]): string {
+export function spanOf(group: ResumeEntry[]): string {
   const starts: string[] = [];
   const ends: string[] = [];
   for (const entry of group) {
