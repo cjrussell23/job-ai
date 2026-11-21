@@ -1,4 +1,5 @@
 import { ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GradeButtons } from "@/features/feedback/components/grade-buttons";
@@ -155,6 +156,12 @@ export function FeedCard({ item, grade }: CardProps) {
           </p>
         </details>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/jobs/${job.id}`}
+            className="text-sm font-medium underline underline-offset-2"
+          >
+            Tailor
+          </Link>
           <GradeButtons
             jobId={job.id}
             targetId={best.targetId}

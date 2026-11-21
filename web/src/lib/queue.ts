@@ -10,6 +10,7 @@ export const queues = {
   parseResume: "parse-resume",
   proposeSearchTitles: "propose-search-titles",
   rescore: "rescore",
+  draftDocument: "draft-document",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];

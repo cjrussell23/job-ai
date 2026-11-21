@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
+import { generateDocument } from "@/features/documents/generate";
 import { learnPreferencesForAll } from "@/features/feedback/learn";
 import { notifyNewMatches } from "@/features/notifications/notify";
 import { parseUpload } from "@/features/profile/parse-upload";
@@ -64,6 +65,20 @@ async function main() {
     }
   });
   await checkSchedule();
+
+  const draftJob = z.object({
+    userId: z.string(),
+    documentId: z.uuid(),
+    jobId: z.uuid(),
+    kind: z.enum(["resume", "cover_letter"]),
+  });
+  await boss.work(queues.draftDocument, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, documentId, jobId, kind } = draftJob.parse(job.data);
+      log.info({ documentId, kind }, "drafting document");
+      await generateDocument(userId, documentId, jobId, kind);
+    }
+  });
 
   const rescoreJob = z.object({ userId: z.string(), requestId: z.uuid() });
   await boss.work(queues.rescore, async (jobs) => {

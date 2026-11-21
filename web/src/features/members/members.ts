@@ -154,3 +154,12 @@ export async function membersWithFeedback(): Promise<Member[]> {
   const rows = await db().select().from(members).where(eq(members.state, "active"));
   return rows.filter((m) => m.userId);
 }
+
+/** Name and Google address for document headers. */
+export async function memberHeader(userId: string): Promise<{ name: string; email: string }> {
+  const [row] = await db()
+    .select({ name: user.name, email: user.email })
+    .from(user)
+    .where(eq(user.id, userId));
+  return { name: row?.name ?? "", email: row?.email ?? "" };
+}
