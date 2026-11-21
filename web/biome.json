@@ -14,7 +14,8 @@
       "!dist",
       "!build",
       "!drizzle/meta",
-      "!next-env.d.ts"
+      "!next-env.d.ts",
+      "!**/__fixtures__"
     ]
   },
   "formatter": {
