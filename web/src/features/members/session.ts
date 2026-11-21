@@ -14,7 +14,10 @@ export type SignedInMember = {
  * Every page and server action that touches user-owned data starts here.
  */
 export async function requireMember(): Promise<SignedInMember> {
-  const current = await auth().api.getSession({ headers: await headers() });
+  // Read the request headers first: that marks the page as dynamic before the auth
+  // instance (and its required environment variables) is touched during a build.
+  const requestHeaders = await headers();
+  const current = await auth().api.getSession({ headers: requestHeaders });
   if (!current) redirect("/sign-in");
   const member = await getMemberByUserId(current.user.id);
   if (member?.state !== "active") redirect("/sign-in?error=suspended");
