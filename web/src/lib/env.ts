@@ -66,11 +66,15 @@ export function scraperEnv(): z.infer<typeof scraperEnvSchema> {
   return cachedScraper;
 }
 
+// Docker Compose passes an unset optional variable as an empty string.
+const optional = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
+
 const notifyEnvSchema = z.object({
   /** Discord bot token; without it, no messages are sent. */
-  DISCORD_BOT_TOKEN: z.string().min(1).optional(),
+  DISCORD_BOT_TOKEN: optional(z.string().min(1)),
   /** Public address of the app, for links in messages. */
-  BETTER_AUTH_URL: z.url().optional(),
+  BETTER_AUTH_URL: optional(z.url()),
 });
 let cachedNotify: z.infer<typeof notifyEnvSchema> | undefined;
 
