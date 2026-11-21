@@ -13,7 +13,7 @@ import { applyFeedView, parseFeedView } from "@/features/scoring/feed-view";
 import { rescoreStatus } from "@/features/scoring/rescore";
 import { summariesFor } from "@/features/scoring/summaries";
 import { sourceLabel } from "@/features/sources/catalogue";
-import { listTargets } from "@/features/targets/targets";
+import { listTargets, targetLabel } from "@/features/targets/targets";
 
 async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   const { userId, name, member } = await requireMember();
@@ -25,7 +25,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
     gradesByJob(userId),
     targetChangePrompts(userId),
   ]);
-  const targetName = new Map(targets.map((t) => [t.id, t.roleType]));
+  const targetName = new Map(targets.map((t) => [t.id, targetLabel(t)]));
   const openPrompts = prompts.filter((p) => {
     const target = targets.find((t) => t.id === p.targetId);
     return target && !(p.reason === "pay" ? target.payIsFirm : target.locationIsFirm);
@@ -76,7 +76,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
           <>
             <FeedFilters
               view={view}
-              targets={targets.map((t) => ({ value: t.id, label: t.roleType }))}
+              targets={targets.map((t) => ({ value: t.id, label: targetLabel(t) }))}
               sources={sources}
               shown={shown.length}
               total={items.length}

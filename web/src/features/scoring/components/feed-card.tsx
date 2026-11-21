@@ -95,11 +95,14 @@ export function FeedCard({ item, grade, summary }: CardProps) {
             also {name}
           </Badge>
         ))}
-        {best.unknownFields.map((field) => (
-          <Badge key={field} variant="outline">
-            {field === "pay" ? "Pay not stated" : "Location not stated"}
-          </Badge>
-        ))}
+        {/* Unknown pay already reads "Pay not listed" above; only location needs a tag. */}
+        {best.unknownFields
+          .filter((field) => field !== "pay")
+          .map((field) => (
+            <Badge key={field} variant="outline">
+              Location not stated
+            </Badge>
+          ))}
       </div>
 
       <ul className="flex flex-col gap-1 text-sm">

@@ -6,7 +6,7 @@ import {
   applicationEvents,
   applications,
 } from "@/db/schema";
-import { getDocument } from "@/features/documents/documents";
+import { approvedDocumentsForJob, getDocument } from "@/features/documents/documents";
 import { recordFeedback } from "@/features/feedback/feedback";
 
 export type { Application, ApplicationEvent };
@@ -111,7 +111,32 @@ export async function trackJob(
   if (!created) throw new Error("application insert returned no row");
   await db().insert(applicationEvents).values({ applicationId: created.id, status });
   await recordFeedback(userId, { jobId, targetId, kind: status });
-  return created;
+  await attachApprovedIfEmpty(userId, jobId);
+  return (await getApplication(userId, created.id)) ?? created;
+}
+
+/**
+ * Fills an application's empty resume or cover letter with the job's approved tailored
+ * version, so a member who tailored and approved doesn't also have to pick it. A choice
+ * the member already made is never replaced.
+ */
+export async function attachApprovedIfEmpty(userId: string, jobId: string): Promise<void> {
+  const application = await applicationForJob(userId, jobId);
+  if (!application) return;
+  const approved = await approvedDocumentsForJob(userId, jobId);
+  const latest = (kind: "resume" | "cover_letter") =>
+    approved.filter((d) => d.kind === kind).sort((a, b) => b.version - a.version)[0];
+  const resume = application.resumeId ? undefined : latest("resume");
+  const letter = application.coverLetterId ? undefined : latest("cover_letter");
+  if (!resume && !letter) return;
+  await db()
+    .update(applications)
+    .set({
+      ...(resume ? { resumeId: resume.id } : {}),
+      ...(letter ? { coverLetterId: letter.id } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(applications.id, application.id), eq(applications.userId, userId)));
 }
 
 export type ChangeResult =

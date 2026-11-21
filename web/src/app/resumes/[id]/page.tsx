@@ -148,7 +148,11 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
             yearsOfExperience={years}
             feedback={
               doc?.state === "approved" ? (
-                <FeedbackPanel version={doc.version} feedback={readFeedback(doc.feedback)} />
+                <FeedbackPanel
+                  version={doc.version}
+                  feedback={readFeedback(doc.feedback)}
+                  profileChangedAt={member.profileChangedAt}
+                />
               ) : undefined
             }
           />

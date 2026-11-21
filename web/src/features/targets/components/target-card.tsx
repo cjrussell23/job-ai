@@ -30,7 +30,16 @@ function payText(target: JobTarget): string | null {
   return `${amount} ${target.payBasis === "hourly" ? "an hour" : "a year"}`;
 }
 
-export function TargetCard({ target, market }: { target: JobTarget; market?: MarketView }) {
+type Props = {
+  target: JobTarget;
+  market?: MarketView;
+  /** Whether a daily run has searched any of this target's titles yet. */
+  searched?: boolean;
+  /** When the daily run starts, "HH:MM" Calgary time. */
+  runTime?: string;
+};
+
+export function TargetCard({ target, market, searched = true, runTime }: Props) {
   const [editing, setEditing] = useState(false);
   const pay = payText(target);
   const where =
@@ -82,7 +91,14 @@ export function TargetCard({ target, market }: { target: JobTarget; market?: Mar
         </div>
       </div>
 
-      {market && target.active && <MarketNote market={market} />}
+      {target.active && target.searchTitles.length > 0 && !searched ? (
+        <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+          Not searched yet. The next daily run{runTime ? ` (${runTime} Calgary time)` : ""} searches
+          these titles, and jobs it finds will show here.
+        </p>
+      ) : (
+        market && target.active && <MarketNote market={market} />
+      )}
 
       <div className="flex flex-col gap-2 border-t pt-3">
         {target.searchTitleState === "proposing" && (

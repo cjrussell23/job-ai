@@ -7,6 +7,7 @@ import { parsePostings } from "@/features/sources/source";
 import { resetDb } from "@/test/db";
 import { createMember } from "@/test/fixtures";
 import {
+  attachApprovedIfEmpty,
   attachDocument,
   eventsFor,
   getApplication,
@@ -123,5 +124,26 @@ describe("applications", () => {
       reason: "not_found",
     });
     expect((await getApplication(userId, application.id))?.status).toBe("saved");
+  });
+
+  test("an approved tailored resume is attached when tracking starts, and later approvals fill an empty slot only", async () => {
+    const userId = await createMember("a@example.com");
+    const jobId = await aJob();
+    const first = await draftResume(userId, jobId);
+    await approveDocument(userId, first);
+    const application = await trackJob(userId, jobId, "saved", null);
+    expect(application.resumeId).toBe(first);
+
+    // A member's own choice is never replaced.
+    await attachDocument(userId, application.id, null, "resume");
+    await attachApprovedIfEmpty(userId, jobId);
+    expect((await getApplication(userId, application.id))?.resumeId).toBe(first);
+    await attachDocument(userId, application.id, null, "resume");
+    expect((await getApplication(userId, application.id))?.resumeId).toBeNull();
+
+    // Nothing for another member's job.
+    const other = await createMember("b@example.com");
+    await attachApprovedIfEmpty(other, jobId);
+    expect(await jobIdsWithApplications(other)).toEqual(new Set());
   });
 });

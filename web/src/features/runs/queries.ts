@@ -1,3 +1,6 @@
+import { inArray, sql } from "drizzle-orm";
+import { db } from "@/db/client";
+import { scrapeRuns } from "@/db/schema";
 import type { SearchQuery } from "@/features/sources/source";
 
 export type TargetSearch = {
@@ -30,4 +33,15 @@ export function buildQueries(targets: TargetSearch[]): SearchQuery[] {
 /** Every approved title, for filtering company boards that list all their jobs. */
 export function allTitles(targets: TargetSearch[]): string[] {
   return [...new Set(targets.flatMap((t) => t.searchTitles))];
+}
+
+/** Which of these search titles a daily run has searched at least once, lowercased. */
+export async function searchedTitles(titles: string[]): Promise<Set<string>> {
+  const wanted = [...new Set(titles.map((t) => t.trim().toLowerCase()).filter(Boolean))];
+  if (wanted.length === 0) return new Set();
+  const rows = await db()
+    .selectDistinct({ query: sql<string>`lower(${scrapeRuns.query})` })
+    .from(scrapeRuns)
+    .where(inArray(sql`lower(${scrapeRuns.query})`, wanted));
+  return new Set(rows.map((r) => r.query));
 }
