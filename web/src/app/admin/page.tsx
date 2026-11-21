@@ -6,13 +6,18 @@ import { AiSettingsForm } from "@/features/admin/components/ai-settings-form";
 import { InviteForm } from "@/features/admin/components/invite-form";
 import { MembersTable } from "@/features/admin/components/members-table";
 import { getSettings } from "@/features/admin/settings";
+import { spendThisMonthByUser } from "@/features/ai/usage";
 import { listMembers } from "@/features/members/members";
 import { requireAdmin } from "@/features/members/session";
 
 // The dashboard deliberately shows no member's profile, documents or applications.
 async function AdminDashboard() {
   const { name } = await requireAdmin();
-  const [members, settings] = await Promise.all([listMembers(), getSettings()]);
+  const [members, settings, spendByUser] = await Promise.all([
+    listMembers(),
+    getSettings(),
+    spendThisMonthByUser(),
+  ]);
   return (
     <>
       <SiteHeader name={name} isAdmin />
@@ -23,12 +28,17 @@ async function AdminDashboard() {
             <CardTitle>Members</CardTitle>
             <CardDescription>
               Inviting a Google address lets that person sign in. Removing a member deletes
-              everything they own. A blank cap uses the default.
+              everything they own. A blank cap uses the default. Spend is counted per calendar month
+              (UTC).
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
             <InviteForm />
-            <MembersTable members={members} defaultSpendCapCents={settings.defaultSpendCapCents} />
+            <MembersTable
+              members={members}
+              defaultSpendCapCents={settings.defaultSpendCapCents}
+              spendByUser={spendByUser}
+            />
           </CardContent>
         </Card>
         <Card>
