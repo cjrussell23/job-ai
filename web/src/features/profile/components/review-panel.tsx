@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { jobsWithPostings } from "@/features/jobs/jobs";
 import {
   nextQuestion,
   openQuestionCount,
@@ -33,6 +34,11 @@ export async function ReviewPanel({ userId, jobId }: Props) {
     openSuggestions(userId, jobId ?? undefined),
     jobId ? Promise.resolve([]) : skillGaps(userId),
   ]);
+  // On the profile page a job-wording edit names the job it was written for.
+  const forJobs = jobId
+    ? []
+    : await jobsWithPostings([...new Set(ideas.flatMap((s) => (s.jobId ? [s.jobId] : [])))]);
+  const jobLabel = new Map(forJobs.map((j) => [j.id, `${j.title} at ${j.company}`]));
   const running = review?.state === "running";
   return (
     <Card>
@@ -95,7 +101,12 @@ export async function ReviewPanel({ userId, jobId }: Props) {
                   id={s.id}
                   jobId={jobId}
                   label={suggestionKindLabels[s.kind]}
-                  itemTitle={s.itemTitle}
+                  itemContext={s.itemContext}
+                  forJob={
+                    s.jobId && jobLabel.has(s.jobId)
+                      ? { id: s.jobId, label: jobLabel.get(s.jobId) ?? "" }
+                      : null
+                  }
                   originalText={s.originalText}
                   proposedText={s.proposedText}
                   reason={s.reason}

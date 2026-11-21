@@ -1,4 +1,5 @@
 import { and, asc, eq, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db/client";
 import { profileItems, type Suggestion, suggestions } from "@/db/schema";
 import { updateItem } from "./profile";
@@ -12,18 +13,31 @@ export const suggestionKindLabels: Record<Suggestion["kind"], string> = {
   job_wording: "Wording for this job",
 };
 
+export type OpenSuggestion = Suggestion & {
+  /** The role, project or item the edit belongs to, e.g. "Web Developer · Acme". */
+  itemContext: string;
+};
+
+const parentItems = alias(profileItems, "parent_items");
+
+const describe = (item: { title: string; organization: string } | null) =>
+  item ? [item.title, item.organization].filter(Boolean).join(" · ") : "";
+
 /**
  * Open suggestions, oldest first. One whose item was edited since is hidden:
  * it was written against text that no longer exists.
  */
-export async function openSuggestions(
-  userId: string,
-  jobId?: string,
-): Promise<(Suggestion & { itemTitle: string })[]> {
+export async function openSuggestions(userId: string, jobId?: string): Promise<OpenSuggestion[]> {
   const rows = await db()
-    .select({ suggestion: suggestions, content: profileItems.content, title: profileItems.title })
+    .select({
+      suggestion: suggestions,
+      content: profileItems.content,
+      item: { title: profileItems.title, organization: profileItems.organization },
+      parent: { title: parentItems.title, organization: parentItems.organization },
+    })
     .from(suggestions)
     .innerJoin(profileItems, eq(profileItems.id, suggestions.profileItemId))
+    .leftJoin(parentItems, eq(parentItems.id, profileItems.parentId))
     .where(
       and(
         eq(suggestions.userId, userId),
@@ -34,7 +48,11 @@ export async function openSuggestions(
     .orderBy(asc(suggestions.createdAt));
   return rows
     .filter((r) => r.content === r.suggestion.originalText)
-    .map((r) => ({ ...r.suggestion, itemTitle: r.title }));
+    .map((r) => ({
+      ...r.suggestion,
+      // A bullet has no title of its own, so it is named by its role or project.
+      itemContext: describe(r.parent?.title ? r.parent : null) || describe(r.item),
+    }));
 }
 
 export type DecideResult = { ok: true } | { ok: false; reason: "not_found" | "item_changed" };

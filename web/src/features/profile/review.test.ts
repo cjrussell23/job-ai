@@ -168,6 +168,8 @@ describe("suggestions", () => {
     );
     const [suggestion] = await openSuggestions(member.userId);
     if (!suggestion) throw new Error("no suggestion");
+    // A bullet is named by the role it sits under.
+    expect(suggestion.itemContext).toBe("Analyst · Acme");
     return { ...member, suggestionId: suggestion.id };
   }
 
