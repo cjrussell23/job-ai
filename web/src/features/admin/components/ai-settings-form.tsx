@@ -10,11 +10,17 @@ import { type AiTask, aiTaskLabels, aiTasks } from "@/features/admin/ai-tasks";
 type Props = {
   models: Record<AiTask, string>;
   defaultSpendCapCents: number;
+  summaryMinScore: number;
   /** Model ids the AI Gateway offers, as suggestions. */
   availableModels: string[];
 };
 
-export function AiSettingsForm({ models, defaultSpendCapCents, availableModels }: Props) {
+export function AiSettingsForm({
+  models,
+  defaultSpendCapCents,
+  summaryMinScore,
+  availableModels,
+}: Props) {
   const [state, action, pending] = useActionState<ActionState, FormData>(aiSettingsAction, {});
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -47,6 +53,21 @@ export function AiSettingsForm({ models, defaultSpendCapCents, availableModels }
           defaultValue={(defaultSpendCapCents / 100).toFixed(2)}
           required
         />
+      </div>
+      <div className="flex max-w-xs flex-col gap-1.5">
+        <Label htmlFor="summary-min">Lowest match score that can get an AI summary</Label>
+        <Input
+          id="summary-min"
+          name="summaryMinScore"
+          type="number"
+          min="0"
+          max="100"
+          defaultValue={summaryMinScore}
+          required
+        />
+        <p className="text-xs text-muted-foreground">
+          Members choose their own score for summaries but never below this, which bounds spend.
+        </p>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>

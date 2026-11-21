@@ -9,7 +9,9 @@ import { Pay } from "@/features/jobs/components/pay";
 import { appTimeZone } from "@/features/runs/time";
 import { dismissJobAction, splitPostingAction } from "@/features/scoring/actions";
 import type { FeedItem } from "@/features/scoring/feed";
+import type { MatchSummary as MatchSummaryRow } from "@/features/scoring/summaries";
 import { sourceLabel } from "@/features/sources/catalogue";
+import { MatchSummary } from "./match-summary";
 
 const day = (date: Date) =>
   date.toLocaleDateString("en-CA", { timeZone: appTimeZone, month: "short", day: "numeric" });
@@ -40,9 +42,13 @@ const workplaceLabels = {
   unknown: null,
 } as const;
 
-type CardProps = { item: FeedItem; grade: { kind: "up" | "down"; reason: string | null } | null };
+type CardProps = {
+  item: FeedItem;
+  grade: { kind: "up" | "down"; reason: string | null } | null;
+  summary?: MatchSummaryRow;
+};
 
-export function FeedCard({ item, grade }: CardProps) {
+export function FeedCard({ item, grade, summary }: CardProps) {
   const { job, best, otherTargets } = item;
   const workplace = workplaceLabels[job.remote];
   return (
@@ -65,6 +71,17 @@ export function FeedCard({ item, grade }: CardProps) {
           <span className="text-xs text-muted-foreground">match</span>
         </div>
       </header>
+
+      {summary && (
+        <MatchSummary
+          id={summary.id}
+          jobId={job.id}
+          headline={summary.headline}
+          points={summary.points}
+          rating={summary.rating}
+          reason={summary.ratingReason}
+        />
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Score label="Target fit" value={best.targetFit} reason={best.targetFitReason} />

@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 export const memberRole = pgEnum("member_role", ["admin", "member"]);
@@ -18,6 +18,13 @@ export const members = pgTable("members", {
   state: memberState("state").notNull().default("invited"),
   /** Matches above this combined score are included in notifications. */
   scoreThreshold: integer("score_threshold").notNull().default(70),
+  /** Whether strong matches get an AI summary. */
+  summariesOn: boolean("summaries_on").notNull().default(true),
+  /**
+   * Matches at or above this combined score get an AI summary. The admin's minimum
+   * (app settings) wins when it is higher, so spend stays bounded.
+   */
+  summaryScore: integer("summary_score").notNull().default(80),
   /** Share of the combined score taken from target fit, in percent. */
   targetFitWeight: integer("target_fit_weight").notNull().default(60),
   /** Monthly AI spend cap in cents; null means the app-wide default. */

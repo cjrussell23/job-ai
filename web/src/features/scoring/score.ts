@@ -21,6 +21,7 @@ import { activeTargets, targetForPrompt } from "@/features/targets/for-scoring";
 import type { JobTarget } from "@/features/targets/targets";
 import { log } from "@/lib/log";
 import { checkFirmLimits } from "./firm-limits";
+import { summarizeStrongMatches } from "./summaries";
 
 export type ScoringSummary = {
   payEstimates: number;
@@ -28,6 +29,8 @@ export type ScoringSummary = {
   hiddenByFirmLimits: number;
   scored: number;
   failed: number;
+  /** New AI summaries written for strong matches. */
+  summaries: number;
 };
 
 /** Pay estimates are app-level work shared by every member (ADR 0002). */
@@ -185,11 +188,17 @@ export async function scoreAfterRun(): Promise<ScoringSummary> {
   const payEstimates = await estimateMissingPay();
   const matches = await createMatches();
   const scoring = await scoreUnscoredMatches();
+  // Summaries come last: they need the new scores to know which matches are strong.
+  const summaries = await summarizeStrongMatches().catch((err: unknown) => {
+    log.error({ err }, "match summaries failed");
+    return { written: 0, failed: 0 };
+  });
   const summary = {
     payEstimates,
     newMatches: matches.created,
     hiddenByFirmLimits: matches.hidden,
     ...scoring,
+    summaries: summaries.written,
   };
   log.info(summary, "scoring finished");
   return summary;

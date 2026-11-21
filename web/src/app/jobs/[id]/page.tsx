@@ -19,6 +19,8 @@ import { jobsWithPostings } from "@/features/jobs/jobs";
 import { memberPayFor, withMemberPay } from "@/features/jobs/member-pay";
 import { requireMember } from "@/features/members/session";
 import { ReviewPanel } from "@/features/profile/components/review-panel";
+import { MatchSummary } from "@/features/scoring/components/match-summary";
+import { summariesFor } from "@/features/scoring/summaries";
 import { sourceLabel } from "@/features/sources/catalogue";
 
 const kindLabels = { resume: "Tailored resume", cover_letter: "Cover letter" } as const;
@@ -119,6 +121,7 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
   if (!found) notFound();
   const mine = (await memberPayFor(userId, [id])).get(id);
   const job = withMemberPay(found, mine);
+  const summary = (await summariesFor(userId, [id])).get(id);
   const docs = await documentsForJob(userId, id);
   const byKind = (kind: Document["kind"]) => docs.find((d) => d.kind === kind);
   const writing = docs.some((d) => d.state === "generating");
@@ -135,6 +138,16 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
             {job.location && ` · ${job.location}`} · <Pay job={job} />
           </p>
           <JobDates job={job} />
+          {summary && (
+            <MatchSummary
+              id={summary.id}
+              jobId={job.id}
+              headline={summary.headline}
+              points={summary.points}
+              rating={summary.rating}
+              reason={summary.ratingReason}
+            />
+          )}
           <PayPanel
             jobId={job.id}
             hasEstimate={found.payEstimatePeriod !== null}

@@ -23,6 +23,7 @@ const settingsSchema = z.object({
       reviewProfile: z.string().min(1).default(writingModel),
       pickResumeItems: z.string().min(1).default(writingModel),
       reviewResume: z.string().min(1).default(writingModel),
+      summarizeMatch: z.string().min(1).default(scoringModel),
     })
     .prefault({}),
   /** Monthly AI spend cap for members without their own cap, in cents. */
@@ -36,6 +37,8 @@ const settingsSchema = z.object({
     .default("05:00"),
   /** How many times a member may rescore their matches per day. */
   rescoreLimitPerDay: z.int().min(0).default(1),
+  /** Matches below this combined score never get an AI summary, whatever a member sets. */
+  summaryMinScore: z.int().min(0).max(100).default(75),
 });
 
 export type AppSettings = z.infer<typeof settingsSchema>;

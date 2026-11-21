@@ -8,6 +8,7 @@ import { requireMember } from "@/features/members/session";
 import { queue, queues } from "@/lib/queue";
 import { dismissJob } from "./feed";
 import { requestRescore } from "./rescore";
+import { rateSummary } from "./summaries";
 
 export async function dismissJobAction(form: FormData): Promise<void> {
   const { userId } = await requireMember();
@@ -44,4 +45,18 @@ export async function rescoreAction(_: RescoreState): Promise<RescoreState> {
   await (await queue()).send(queues.rescore, { userId, requestId: result.requestId });
   revalidatePath("/");
   return { message: "Rescoring your jobs. This takes a minute or two; refresh to see new scores." };
+}
+
+export async function rateSummaryAction(form: FormData): Promise<void> {
+  const { userId } = await requireMember();
+  const id = z.uuid().safeParse(form.get("summaryId"));
+  if (!id.success) return;
+  await rateSummary(userId, id.data, {
+    rating: form.get("rating"),
+    reason: form.get("reason") || null,
+    comment: String(form.get("comment") ?? ""),
+  });
+  revalidatePath("/");
+  const jobId = z.uuid().safeParse(form.get("jobId"));
+  if (jobId.success) revalidatePath(`/jobs/${jobId.data}`);
 }

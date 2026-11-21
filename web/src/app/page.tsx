@@ -11,6 +11,7 @@ import { RescoreBanner } from "@/features/scoring/components/rescore-banner";
 import { feedForUser } from "@/features/scoring/feed";
 import { applyFeedView, parseFeedView } from "@/features/scoring/feed-view";
 import { rescoreStatus } from "@/features/scoring/rescore";
+import { summariesFor } from "@/features/scoring/summaries";
 import { sourceLabel } from "@/features/sources/catalogue";
 import { listTargets } from "@/features/targets/targets";
 
@@ -31,6 +32,10 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
   });
   const view = parseFeedView(params);
   const shown = applyFeedView(items, view);
+  const summaries = await summariesFor(
+    userId,
+    shown.map((i) => i.job.id),
+  );
   const sources = [...new Set(items.flatMap((i) => i.job.postings.map((p) => p.source)))].map(
     (id) => ({ value: id, label: sourceLabel(id) }),
   );
@@ -85,6 +90,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
               <FeedCard
                 key={item.job.id}
                 item={item}
+                summary={summaries.get(item.job.id)}
                 grade={(() => {
                   const g = grades.get(item.job.id);
                   return g && (g.kind === "up" || g.kind === "down")

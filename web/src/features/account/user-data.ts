@@ -9,6 +9,7 @@ import {
   jobMatches,
   jobTargets,
   learnedPreferences,
+  matchSummaries,
   memberJobPay,
   members,
   profileContacts,
@@ -39,6 +40,7 @@ export const userOwnedTables = {
   documents: "exported",
   applications: "exported",
   member_job_pay: "exported",
+  match_summaries: "exported",
   suggestions: "exported",
   profile_questions: "exported",
   profile_reviews: "excluded: a log of review requests",
@@ -60,6 +62,8 @@ export async function exportUserData(userId: string) {
     .select({
       role: members.role,
       scoreThreshold: members.scoreThreshold,
+      summariesOn: members.summariesOn,
+      summaryScore: members.summaryScore,
       targetFitWeight: members.targetFitWeight,
       spendCapCents: members.spendCapCents,
       invitedAt: members.invitedAt,
@@ -81,6 +85,7 @@ export async function exportUserData(userId: string) {
     questions,
     contacts,
     knownPay,
+    summaryRows,
   ] = await Promise.all([
     db().select().from(profileItems).where(eq(profileItems.userId, userId)),
     db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
@@ -95,6 +100,7 @@ export async function exportUserData(userId: string) {
     db().select().from(profileQuestions).where(eq(profileQuestions.userId, userId)),
     db().select().from(profileContacts).where(eq(profileContacts.userId, userId)),
     db().select().from(memberJobPay).where(eq(memberJobPay.userId, userId)),
+    db().select().from(matchSummaries).where(eq(matchSummaries.userId, userId)),
   ]);
   const history = apps.length
     ? await db()
@@ -128,6 +134,7 @@ export async function exportUserData(userId: string) {
     suggestions: strip(ideas),
     profileQuestions: strip(questions),
     jobPay: strip(knownPay),
+    matchSummaries: strip(summaryRows),
   };
 }
 
