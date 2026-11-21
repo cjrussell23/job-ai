@@ -6,6 +6,7 @@ import { PreferencesCard } from "@/features/feedback/components/preferences-card
 import { listPreferences } from "@/features/feedback/feedback";
 import { requireMember } from "@/features/members/session";
 import { RefreshWhile } from "@/features/profile/components/refresh-while";
+import { marketForTargets } from "@/features/scoring/market";
 import { SourceList } from "@/features/sources/components/source-list";
 import { TargetCard } from "@/features/targets/components/target-card";
 import { TargetForm } from "@/features/targets/components/target-form";
@@ -18,6 +19,7 @@ async function Targets() {
     getSettings(),
     listPreferences(userId),
   ]);
+  const market = await marketForTargets(userId, targets);
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
@@ -36,7 +38,7 @@ async function Targets() {
           <SourceList enabled={settings.sourcesEnabled} />
         </div>
         {targets.map((target) => (
-          <TargetCard key={target.id} target={target} />
+          <TargetCard key={target.id} target={target} market={market.get(target.id)} />
         ))}
         <PreferencesCard preferences={preferences} />
         <details className="rounded-lg border border-dashed p-4" open={targets.length === 0}>

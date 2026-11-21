@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MarketNote } from "@/features/scoring/components/market-note";
+import type { MarketView } from "@/features/scoring/market";
 import {
   deleteTargetAction,
   setActiveAction,
@@ -28,7 +30,7 @@ function payText(target: JobTarget): string | null {
   return `${amount} ${target.payBasis === "hourly" ? "an hour" : "a year"}`;
 }
 
-export function TargetCard({ target }: { target: JobTarget }) {
+export function TargetCard({ target, market }: { target: JobTarget; market?: MarketView }) {
   const [editing, setEditing] = useState(false);
   const pay = payText(target);
   const where =
@@ -79,6 +81,8 @@ export function TargetCard({ target }: { target: JobTarget }) {
           </form>
         </div>
       </div>
+
+      {market && target.active && <MarketNote market={market} />}
 
       <div className="flex flex-col gap-2 border-t pt-3">
         {target.searchTitleState === "proposing" && (
