@@ -20,8 +20,11 @@ afterAll(closeDb);
 
 let scoreGiven = 80;
 const replies = (prompt: string) => {
-  if (prompt.includes("estimate the likely pay")) {
-    return { min: 17, max: 19, period: "hour", certainty: "low", reason: "Typical pay." };
+  if (prompt.includes("work out its pay")) {
+    return {
+      stated: null,
+      estimate: { min: 17, max: 19, period: "hour", certainty: "low", reason: "Typical pay." },
+    };
   }
   return { score: scoreGiven, reason: "A reason." };
 };

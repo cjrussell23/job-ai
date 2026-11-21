@@ -162,6 +162,13 @@
       "when": 1795300233789,
       "tag": "0022_company_board_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795305392765,
+      "tag": "0023_pay_stated_in",
+      "breakpoints": true
     }
   ]
 }

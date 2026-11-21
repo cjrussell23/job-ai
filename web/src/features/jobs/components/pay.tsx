@@ -30,6 +30,9 @@ export function Pay({ job }: { job: Job & { memberPay?: "entered" | "confirmed_e
             {memberLabels[job.memberPay]}
           </Badge>
         )}
+        {!job.memberPay && job.payStatedIn === "description" && (
+          <span className="ml-1 text-xs text-muted-foreground">(from the description)</span>
+        )}
       </span>
     );
   }

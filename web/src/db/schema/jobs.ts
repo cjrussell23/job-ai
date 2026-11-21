@@ -32,6 +32,11 @@ export const jobs = pgTable(
     payMax: doublePrecision("pay_max"),
     payPeriod: payPeriod("pay_period"),
     hoursPerWeek: integer("hours_per_week"),
+    /**
+     * Where stated pay came from: null when a posting's pay field gave it, "description"
+     * when it was read from the job description, with a quote checked against the text.
+     */
+    payStatedIn: text("pay_stated_in").$type<"description">(),
     /** A guess for jobs that state no pay (ADR 0002): always labelled, never a firm limit. */
     payEstimateMin: doublePrecision("pay_estimate_min"),
     payEstimateMax: doublePrecision("pay_estimate_max"),

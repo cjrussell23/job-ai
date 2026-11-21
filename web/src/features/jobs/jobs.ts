@@ -127,3 +127,51 @@ export function postedAt(job: { postings: Pick<Posting, "postedAt">[] }): Date |
     .map((d) => d.getTime());
   return dates.length ? new Date(Math.min(...dates)) : null;
 }
+
+/** Dollar amounts in a piece of text, as full numbers: "$195K" -> 195000. */
+function amountsIn(text: string): number[] {
+  return [...text.matchAll(/(\d{1,3}(?:[,\s]\d{3})+|\d+(?:\.\d+)?)\s*(k)?\b/gi)].map((m) => {
+    const value = Number((m[1] ?? "").replace(/[,\s]/g, ""));
+    return m[2] ? value * 1000 : value;
+  });
+}
+
+const squash = (text: string) =>
+  text.replace(/[*_`]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+
+/**
+ * Whether pay a model read from a description is really there: its quote appears in the
+ * description and holds both figures. Anything else is treated as not stated (rule 1).
+ */
+export function statedPayChecks(
+  description: string,
+  stated: { min: number; max: number; quote: string },
+): boolean {
+  const quote = squash(stated.quote);
+  if (quote.length < 6 || !squash(description).includes(quote)) return false;
+  const amounts = amountsIn(stated.quote);
+  const near = (want: number) =>
+    amounts.some((a) => Math.abs(a - want) <= Math.max(1, want * 0.001));
+  return near(stated.min) && near(stated.max);
+}
+
+export async function saveStatedPay(
+  jobId: string,
+  pay: { min: number; max: number; period: "hour" | "day" | "week" | "month" | "year" },
+): Promise<void> {
+  await db()
+    .update(jobs)
+    .set({
+      payMin: pay.min,
+      payMax: pay.max,
+      payPeriod: pay.period,
+      payStatedIn: "description",
+      // Stated pay replaces any guess.
+      payEstimateMin: null,
+      payEstimateMax: null,
+      payEstimatePeriod: null,
+      payEstimateCertainty: null,
+      payEstimateReason: null,
+    })
+    .where(and(eq(jobs.id, jobId), isNull(jobs.payPeriod)));
+}

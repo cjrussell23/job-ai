@@ -13,6 +13,8 @@ import {
   jobsWithPostings,
   openJobsForMatching,
   savePayEstimate,
+  saveStatedPay,
+  statedPayChecks,
 } from "@/features/jobs/jobs";
 import { allMemberPay, withMemberPay } from "@/features/jobs/member-pay";
 import { profileForScoring } from "@/features/profile/for-scoring";
@@ -21,6 +23,7 @@ import { activeTargets, targetForPrompt } from "@/features/targets/for-scoring";
 import type { JobTarget } from "@/features/targets/targets";
 import { log } from "@/lib/log";
 import { checkFirmLimits } from "./firm-limits";
+import { refilterJobForAll } from "./rescore";
 import { summarizeStrongMatches } from "./summaries";
 
 export type ScoringSummary = {
@@ -33,15 +36,25 @@ export type ScoringSummary = {
   summaries: number;
 };
 
-/** Pay estimates are app-level work shared by every member (ADR 0002). */
+/**
+ * For jobs with no stated pay: reads pay the description states, checked against the
+ * text, and otherwise saves an estimate (ADR 0002). App-level work shared by every member.
+ */
 export async function estimateMissingPay(): Promise<number> {
   let made = 0;
   for (const job of await jobsNeedingPayEstimate()) {
-    const result = await runTask(null, estimatePay, { job: jobForPrompt(job, 3000) });
-    if (result.ok) {
-      await savePayEstimate(job.id, result.output);
-      made++;
+    // Pay is often near the end of a long description, so give the model most of it.
+    const result = await runTask(null, estimatePay, { job: jobForPrompt(job, 12_000) });
+    if (!result.ok) continue;
+    const { stated, estimate } = result.output;
+    if (stated && statedPayChecks(job.description, stated)) {
+      await saveStatedPay(job.id, stated);
+      // Firm pay limits can now be checked for real.
+      await refilterJobForAll(job.id);
+    } else {
+      await savePayEstimate(job.id, estimate);
     }
+    made++;
   }
   return made;
 }

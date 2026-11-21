@@ -19,13 +19,16 @@ afterAll(closeDb);
 
 /** Replies by task: the pay estimate, target fit and profile fit prompts differ. */
 const replies = (prompt: string) => {
-  if (prompt.includes("estimate the likely pay")) {
+  if (prompt.includes("work out its pay")) {
     return {
-      min: 17,
-      max: 19,
-      period: "hour",
-      certainty: "medium",
-      reason: "Typical Calgary cafe pay.",
+      stated: null,
+      estimate: {
+        min: 17,
+        max: 19,
+        period: "hour",
+        certainty: "medium",
+        reason: "Typical Calgary cafe pay.",
+      },
     };
   }
   if (prompt.includes("Their profile")) return { score: 60, reason: "You have cafe experience." };
@@ -101,7 +104,7 @@ describe("matching and firm limits", () => {
 
     // The failing job never reached a model: one pay estimate, then two scores for each of two jobs.
     const scoringPrompts = fake.calls.filter(
-      (c) => !JSON.stringify(c.prompt).includes("estimate the likely pay"),
+      (c) => !JSON.stringify(c.prompt).includes("work out its pay"),
     );
     expect(scoringPrompts).toHaveLength(4);
     expect(scoringPrompts.some((c) => JSON.stringify(c.prompt).includes("Low Pay Cafe"))).toBe(

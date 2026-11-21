@@ -217,3 +217,14 @@ async function recheck(
   }
   return changed;
 }
+
+/** After a job's pay becomes known, re-checks every member's matches for it. No model call. */
+export async function refilterJobForAll(jobId: string): Promise<number> {
+  const members = await db()
+    .selectDistinct({ userId: jobMatches.userId })
+    .from(jobMatches)
+    .where(eq(jobMatches.jobId, jobId));
+  let changed = 0;
+  for (const { userId } of members) changed += await refilterJobForMember(userId, jobId);
+  return changed;
+}
