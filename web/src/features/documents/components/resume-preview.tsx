@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { densityStyles, type Layout } from "@/features/documents/layout";
 
 const pxPerIn = 96;
@@ -34,7 +34,7 @@ export function ResumePreview({ html, layout, onMeasure }: Props) {
     return () => observer.disconnect();
   }, []);
 
-  const measure = () => {
+  const measure = useCallback(() => {
     const doc = frame.current?.contentDocument;
     if (!doc?.body) return;
     const marginPx = densityStyles[layout.density].marginIn.y * pxPerIn;
@@ -62,7 +62,14 @@ export function ResumePreview({ html, layout, onMeasure }: Props) {
       Math.ceil((contentPx - layout.pages * pageContentPx) / linePx),
     );
     onMeasure({ pages, overflowLines });
-  };
+  }, [layout, onMeasure]);
+
+  // The first document can finish loading before React attaches onLoad (it is rendered
+  // on the server), so measure whatever is already loaded too.
+  useEffect(() => {
+    const doc = frame.current?.contentDocument;
+    if (doc?.readyState === "complete" && doc.body?.childElementCount) measure();
+  }, [measure]);
 
   return (
     <div ref={box} className="w-full">
