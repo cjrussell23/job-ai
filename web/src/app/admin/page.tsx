@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { backupStatus } from "@/features/admin/backups";
 import { AiSettingsForm } from "@/features/admin/components/ai-settings-form";
+import { BackupCard } from "@/features/admin/components/backup-card";
 import { InviteForm } from "@/features/admin/components/invite-form";
 import { MembersTable } from "@/features/admin/components/members-table";
 import { getSettings } from "@/features/admin/settings";
@@ -13,10 +15,11 @@ import { requireAdmin } from "@/features/members/session";
 // The dashboard deliberately shows no member's profile, documents or applications.
 async function AdminDashboard() {
   const { name } = await requireAdmin();
-  const [members, settings, spendByUser] = await Promise.all([
+  const [members, settings, spendByUser, backups] = await Promise.all([
     listMembers(),
     getSettings(),
     spendThisMonthByUser(),
+    backupStatus(),
   ]);
   return (
     <>
@@ -56,6 +59,7 @@ async function AdminDashboard() {
             />
           </CardContent>
         </Card>
+        <BackupCard status={backups} />
       </main>
     </>
   );

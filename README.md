@@ -25,3 +25,5 @@ After changing a table in `web/src/db/schema/`, run `npm run db:generate` and co
 ## Deployment
 
 Merges to `main` publish `ghcr.io/cjrussell23/job-ai-web`. On the server, copy `.env.example` to `.env`, fill it in, and run `docker compose up -d` (or deploy the same file as a Portainer stack). The web container applies migrations on start. Point a Cloudflare Tunnel route at `http://localhost:3000`.
+
+The `backup` service writes a nightly encrypted database dump to `BACKUP_DIR`; see [docs/backups.md](docs/backups.md) for setup and restoring.

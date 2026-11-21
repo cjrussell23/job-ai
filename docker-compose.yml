@@ -44,5 +44,21 @@ services:
       web:
         condition: service_started
 
+  backup:
+    image: ghcr.io/cjrussell23/job-ai-backup:${IMAGE_TAG:-latest}
+    build: ./backup
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://jobai:${POSTGRES_PASSWORD}@postgres:5432/jobai
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE in .env}
+      BACKUP_TIME: ${BACKUP_TIME:-03:00}
+      TZ: America/Edmonton
+    volumes:
+      # Point BACKUP_DIR at a different drive from the database's, e.g. the 14 TB drive.
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:
