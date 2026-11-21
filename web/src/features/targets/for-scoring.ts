@@ -17,7 +17,7 @@ export function targetForPrompt(target: JobTarget, learnedPreferences: string[] 
   const place =
     target.workplace === "remote_only"
       ? "Remote only"
-      : `${target.locations.join(", ") || "Anywhere"}${target.workplace === "local_or_remote" ? ", or remote" : " only"}`;
+      : `${target.locations.join("; ") || "Anywhere"}${target.workplace === "local_or_remote" ? ", or remote" : " only"}`;
   const pay =
     target.minPayCents === null
       ? "no minimum given"

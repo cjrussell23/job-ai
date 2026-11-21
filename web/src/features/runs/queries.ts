@@ -35,13 +35,28 @@ export function allTitles(targets: TargetSearch[]): string[] {
   return [...new Set(targets.flatMap((t) => t.searchTitles))];
 }
 
-/** Which of these search titles a daily run has searched at least once, lowercased. */
-export async function searchedTitles(titles: string[]): Promise<Set<string>> {
-  const wanted = [...new Set(titles.map((t) => t.trim().toLowerCase()).filter(Boolean))];
-  if (wanted.length === 0) return new Set();
+/**
+ * Whether a daily run has searched this target yet: at least one of its own searches
+ * (a title in one of its places) has a scrape run. Titles alone aren't enough, since
+ * targets often share titles but not places.
+ */
+export async function searchedTargets(
+  targets: (TargetSearch & { id: string })[],
+): Promise<Set<string>> {
+  const keyOf = (q: SearchQuery) =>
+    `${q.title.trim().toLowerCase()}|${q.location.trim().toLowerCase()}`;
+  const wanted = new Map(targets.map((t) => [t.id, buildQueries([t]).map(keyOf)]));
+  const titles = [
+    ...new Set(targets.flatMap((t) => t.searchTitles.map((s) => s.trim().toLowerCase()))),
+  ];
+  if (titles.length === 0) return new Set();
   const rows = await db()
-    .selectDistinct({ query: sql<string>`lower(${scrapeRuns.query})` })
+    .selectDistinct({
+      query: sql<string>`lower(${scrapeRuns.query})`,
+      location: sql<string>`lower(${scrapeRuns.location})`,
+    })
     .from(scrapeRuns)
-    .where(inArray(sql`lower(${scrapeRuns.query})`, wanted));
-  return new Set(rows.map((r) => r.query));
+    .where(inArray(sql`lower(${scrapeRuns.query})`, titles));
+  const done = new Set(rows.map((r) => `${r.query}|${r.location}`));
+  return new Set([...wanted].filter(([, keys]) => keys.some((k) => done.has(k))).map(([id]) => id));
 }

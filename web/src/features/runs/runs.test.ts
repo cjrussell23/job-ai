@@ -6,7 +6,7 @@ import { approveSearchTitles, createTarget } from "@/features/targets/targets";
 import { resetDb } from "@/test/db";
 import { createMember } from "@/test/fixtures";
 import { executeRun, runDaily, startManualRun, startScheduledRunIfDue } from "./daily-run";
-import { buildQueries } from "./queries";
+import { buildQueries, searchedTargets } from "./queries";
 import { localDate, scheduledRunDue } from "./time";
 
 describe("scheduling", () => {
@@ -178,5 +178,38 @@ describe("starting runs", () => {
     await executeRun(run.runId, { sources: [] });
     const [row] = await db().select().from(dailyRuns);
     expect(row).toMatchObject({ status: "done", summary: { queries: 0 } });
+  });
+});
+
+describe("searched targets", () => {
+  test("a target counts as searched only when one of its title-and-place searches ran", async () => {
+    await db()
+      .insert(scrapeRuns)
+      .values({
+        runId: "r1",
+        source: "indeed",
+        query: "Developer",
+        location: "Calgary, AB",
+        startedAt: new Date(),
+      });
+    const calgary = {
+      id: "a",
+      searchTitles: ["developer"],
+      locations: ["Calgary, AB"],
+      workplace: "local_or_remote" as const,
+    };
+    const ontario = {
+      id: "b",
+      searchTitles: ["Developer"],
+      locations: ["Ontario"],
+      workplace: "local_or_remote" as const,
+    };
+    const remote = {
+      id: "c",
+      searchTitles: ["Developer"],
+      locations: [],
+      workplace: "remote_only" as const,
+    };
+    expect(await searchedTargets([calgary, ontario, remote])).toEqual(new Set(["a"]));
   });
 });
