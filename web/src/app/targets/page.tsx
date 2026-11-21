@@ -6,6 +6,7 @@ import { getSettings } from "@/features/admin/settings";
 import { PreferencesCard } from "@/features/feedback/components/preferences-card";
 import { listPreferences } from "@/features/feedback/feedback";
 import { requireMember } from "@/features/members/session";
+import { searchedTitles } from "@/features/runs/queries";
 import { marketForTargets } from "@/features/scoring/market";
 import { SourceList } from "@/features/sources/components/source-list";
 import { TargetCard } from "@/features/targets/components/target-card";
@@ -19,7 +20,10 @@ async function Targets() {
     getSettings(),
     listPreferences(userId),
   ]);
-  const market = await marketForTargets(userId, targets);
+  const [market, searched] = await Promise.all([
+    marketForTargets(userId, targets),
+    searchedTitles(targets.flatMap((t) => t.searchTitles)),
+  ]);
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
@@ -38,7 +42,13 @@ async function Targets() {
           <SourceList enabled={settings.sourcesEnabled} />
         </div>
         {targets.map((target) => (
-          <TargetCard key={target.id} target={target} market={market.get(target.id)} />
+          <TargetCard
+            key={target.id}
+            target={target}
+            market={market.get(target.id)}
+            searched={target.searchTitles.some((t) => searched.has(t.trim().toLowerCase()))}
+            runTime={settings.dailyRunTime}
+          />
         ))}
         <PreferencesCard preferences={preferences} />
         <details className="rounded-lg border border-dashed p-4" open={targets.length === 0}>

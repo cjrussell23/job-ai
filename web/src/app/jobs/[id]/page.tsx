@@ -11,6 +11,7 @@ import { ApplicationPanel } from "@/features/applications/components/application
 import { approveAction, draftAction } from "@/features/documents/actions";
 import { documentBodySchema } from "@/features/documents/body";
 import { DocumentEditor } from "@/features/documents/components/document-editor";
+import { TailoredScore } from "@/features/documents/components/tailored-score";
 import { type Document, documentsForJob } from "@/features/documents/documents";
 import { JobDates } from "@/features/jobs/components/job-dates";
 import { Pay } from "@/features/jobs/components/pay";
@@ -76,6 +77,11 @@ function DocumentCard({ doc, jobId }: { doc: Document; jobId: string }) {
               body={body.data}
               saved={body.data}
             />
+            {doc.kind === "resume" && (
+              <Suspense fallback={<p className="text-sm text-muted-foreground">Scoring…</p>}>
+                <TailoredScore doc={doc} />
+              </Suspense>
+            )}
             <div className="flex flex-wrap items-center gap-3 border-t pt-4">
               {doc.state === "draft" && (
                 <form action={approveAction}>

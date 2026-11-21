@@ -13,10 +13,15 @@ const aspectLabels: Record<string, string> = {
   summary: "Summary",
 };
 
-type Props = { version: number; feedback: ResumeFeedback | null };
+type Props = {
+  version: number;
+  feedback: ResumeFeedback | null;
+  /** When the member's profile last changed; feedback written before it may be out of date. */
+  profileChangedAt: Date | null;
+};
 
 /** AI feedback on the saved resume. Each request is one model call, made only on request. */
-export function FeedbackPanel({ version, feedback }: Props) {
+export function FeedbackPanel({ version, feedback, profileChangedAt }: Props) {
   const running = feedback?.state === "running";
   return (
     <div className="flex flex-col gap-2 rounded-md border p-3 text-sm">
@@ -47,9 +52,12 @@ export function FeedbackPanel({ version, feedback }: Props) {
       )}
       {feedback?.state === "done" && (
         <>
-          {feedback.version !== version && (
-            <p className="text-xs text-muted-foreground">
-              Written before your last save; ask again for the current version.
+          {(feedback.version !== version ||
+            (profileChangedAt !== null && profileChangedAt > new Date(feedback.at))) && (
+            <p className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+              Out of date: written before your last{" "}
+              {feedback.version !== version ? "save" : "profile change"}. Ask again for current
+              feedback.
             </p>
           )}
           <p>{feedback.overall}</p>

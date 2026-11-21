@@ -1,4 +1,5 @@
 import { bulletAdvice, bulletStrength, entryStrength } from "@/features/profile/strength";
+import { bulletRange } from "./guidance";
 
 /**
  * A resume's score out of 100, from rules anyone can check: no model call. Each aspect
@@ -109,4 +110,48 @@ export function scoreResume(input: ScoreInput): ResumeScore {
       aspects.reduce((sum, a) => sum + a.weight, 0),
   );
   return { total, aspects };
+}
+
+/**
+ * The same score for a saved resume body, e.g. a tailored one. Entries in a section
+ * headed like "Experience" count as roles, in the order shown; the rest as projects.
+ */
+export function scoreBody(
+  body: import("./body").ResumeBody,
+  pages: number,
+  targetPages = 1,
+  now = new Date(),
+): ResumeScore {
+  let rank = 0;
+  const entries: ScoreInput["entries"] = body.sections.flatMap((section) => {
+    const isRole = /experience|employment|work history/i.test(section.heading);
+    return section.entries
+      .filter((e) => e.lines.length > 0 || isRole)
+      .map((e) => {
+        const [startDate = "", endDate = startDate] = e.dates.split(" – ");
+        const kind = isRole ? ("role" as const) : ("project" as const);
+        const range = bulletRange(
+          { type: kind, startDate, endDate, rank: isRole ? rank++ : -1 },
+          now,
+        );
+        return { kind, bullets: e.lines.map((l) => l.text), range };
+      });
+  });
+  const parts = body.contactParts ?? [];
+  const has = (kind: "email" | "phone" | "location") =>
+    parts.length ? parts.some((p) => p.kind === kind) : kind === "email" && body.contact !== "";
+  const skills = body.skills.flatMap((l) => l.text.split(/[,·]/)).filter((s) => s.trim()).length;
+  return scoreResume({
+    pages,
+    targetPages,
+    entries,
+    contact: {
+      email: has("email"),
+      phone: has("phone"),
+      location: has("location"),
+      links: body.links.length,
+    },
+    hasSummary: body.summary.length > 0,
+    skills,
+  });
 }

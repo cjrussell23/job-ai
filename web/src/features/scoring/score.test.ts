@@ -159,7 +159,7 @@ describe("the feed", () => {
     // 90 target fit and 60 profile fit at a 60% weight.
     expect(feed[0]?.best).toMatchObject({
       combined: 78,
-      targetName: "Barista",
+      targetName: "Barista · Calgary, AB or remote",
       userId: alice.userId,
     });
 

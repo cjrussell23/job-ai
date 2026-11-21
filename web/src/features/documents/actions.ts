@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { attachApprovedIfEmpty } from "@/features/applications/applications";
 import { requireMember } from "@/features/members/session";
 import { createItem } from "@/features/profile/profile";
 import { queue, queues } from "@/lib/queue";
@@ -45,7 +46,12 @@ export async function approveAction(form: FormData): Promise<void> {
   const documentId = z.uuid().parse(form.get("documentId"));
   await approveDocument(userId, documentId);
   const doc = await getDocument(userId, documentId);
-  if (doc?.jobId) revalidatePath(`/jobs/${doc.jobId}`);
+  if (doc?.jobId) {
+    // A job already on the board picks up its newly approved tailored version.
+    await attachApprovedIfEmpty(userId, doc.jobId);
+    revalidatePath(`/jobs/${doc.jobId}`);
+    revalidatePath("/board");
+  }
 }
 
 /**

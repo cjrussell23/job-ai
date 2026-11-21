@@ -37,3 +37,41 @@ describe("resume score", () => {
     expect(vague.total).toBeLessThan(good.total);
   });
 });
+
+describe("scoring a saved resume", () => {
+  test("experience entries count as roles and contact parts count", async () => {
+    const { scoreBody } = await import("./score");
+    const { resumeBodySchema } = await import("./body");
+    const line = (text: string) => ({ id: text, text, sources: [], origin: "profile" as const });
+    const body = resumeBodySchema.parse({
+      kind: "resume",
+      name: "Ann",
+      contact: "a@example.com",
+      contactParts: [{ kind: "email", text: "a@example.com" }],
+      links: [],
+      summary: [],
+      sections: [
+        {
+          id: "s",
+          heading: "Experience",
+          entries: [
+            {
+              id: "e",
+              itemId: null,
+              title: "Dev",
+              subtitle: "Acme",
+              dates: "Jan 2024 – Present",
+              lines: [line(strong), line(strong), line(strong)],
+            },
+          ],
+        },
+      ],
+      skills: [line("SQL, TypeScript, React")],
+    });
+    const score = scoreBody(body, 1);
+    const by = Object.fromEntries(score.aspects.map((a) => [a.key, a.score]));
+    expect(by.structure).toBe(100);
+    expect(by.impact).toBe(100);
+    expect(score.aspects.find((a) => a.key === "completeness")?.detail).toContain("a phone number");
+  });
+});

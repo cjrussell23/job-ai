@@ -4,7 +4,7 @@ import { type JobMatch, jobMatches } from "@/db/schema";
 import { jobIdsWithApplications } from "@/features/applications/applications";
 import { type JobWithPostings, jobsWithPostings } from "@/features/jobs/jobs";
 import { memberPayFor, withMemberPay } from "@/features/jobs/member-pay";
-import { listTargets } from "@/features/targets/targets";
+import { listTargets, targetLabel } from "@/features/targets/targets";
 import { combinedScore } from "./firm-limits";
 
 export type FeedItem = {
@@ -40,7 +40,8 @@ export async function feedForUser(userId: string, targetFitWeight: number): Prom
     memberPayFor(userId, jobIds),
   ]);
   const jobs = found.map((j) => withMemberPay(j, pay.get(j.id)));
-  const targetName = new Map(targets.map((t) => [t.id, t.roleType]));
+  // The full label tells apart targets with the same role, e.g. Calgary vs remote.
+  const targetName = new Map(targets.map((t) => [t.id, targetLabel(t)]));
   const openJobs = new Map(jobs.filter((j) => j.state === "open").map((j) => [j.id, j]));
 
   const byJob = new Map<string, (JobMatch & { targetName: string; combined: number | null })[]>();
