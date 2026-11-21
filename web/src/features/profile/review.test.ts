@@ -184,6 +184,19 @@ describe("suggestions", () => {
     });
   });
 
+  test("accepting changes only the wording, keeping the item's other fields", async () => {
+    const { userId, bulletId, suggestionId } = await withSuggestion();
+    // A patch of other fields leaves the wording alone, so the suggestion still applies.
+    await updateItem(userId, bulletId, { shortContent: "Reports", visibility: "always" });
+    expect(await acceptSuggestion(userId, suggestionId)).toEqual({ ok: true });
+    const item = (await listItems(userId)).find((i) => i.id === bulletId);
+    expect(item).toMatchObject({
+      content: "Built weekly team reports",
+      shortContent: "Reports",
+      visibility: "always",
+    });
+  });
+
   test("an item edited since the suggestion is never overwritten", async () => {
     const { userId, bulletId, suggestionId } = await withSuggestion();
     await updateItem(userId, bulletId, { content: "My own new wording" });

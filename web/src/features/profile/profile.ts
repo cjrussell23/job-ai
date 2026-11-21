@@ -119,9 +119,12 @@ export async function updateItem(
 ): Promise<ItemResult> {
   const parsed = itemPatchSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: "invalid" };
+  // Zod fills the input schema's defaults even for keys a partial schema leaves out, so
+  // keep only the fields the caller sent: a one-field patch must not blank the rest.
+  const patch = Object.fromEntries(Object.entries(parsed.data).filter(([key]) => key in raw));
   const updated = await db()
     .update(profileItems)
-    .set({ ...parsed.data, updatedAt: sql`now()` })
+    .set({ ...patch, updatedAt: sql`now()` })
     .where(and(eq(profileItems.id, itemId), eq(profileItems.userId, userId)))
     .returning({ id: profileItems.id });
   if (!updated[0]) return { ok: false, reason: "not_found" };
