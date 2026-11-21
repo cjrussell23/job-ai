@@ -43,10 +43,12 @@ describe("matching helpers", () => {
     expect(titleMatches("Barista", ["Cafe Attendant", "Barista"])).toBe(true);
   });
 
-  test("locations match on the city", () => {
+  test("locations match on the searched city, province or country", () => {
     expect(locationMatches("Calgary, AB", "Calgary, Alberta")).toBe(true);
     expect(locationMatches("Edmonton, AB", "Calgary, AB")).toBe(false);
     expect(locationMatches("Calgary", "")).toBe(false);
+    expect(locationMatches("Edmonton, AB", "Alberta")).toBe(true);
+    expect(locationMatches("Toronto, ON", "Canada")).toBe(true);
   });
 
   test("pay written as text", () => {
@@ -115,6 +117,11 @@ describe("Government of Alberta", () => {
       title: "Manager, AI Harness Engineering",
     });
     expect(entries.some((e) => e.city === "Calgary")).toBe(true);
+    // Two-word cities stay whole.
+    const twoWords = parseSitemap(
+      "<urlset><url><loc>https://jobpostings.alberta.ca/job/Red-Deer-Policy-Analyst/123/</loc></url></urlset>",
+    );
+    expect(twoWords[0]).toMatchObject({ city: "Red Deer", title: "Policy Analyst" });
   });
 
   test("fetches only matching postings and reads their pages", async () => {

@@ -1,4 +1,5 @@
 import { normalizeLocation, normalizeTitle } from "@/features/jobs/identity";
+import { parsePlace, placeContains } from "@/lib/places";
 
 const fillerWords = new Set(["and", "of", "the", "a", "an", "to", "for", "in", "i", "ii", "iii"]);
 
@@ -26,8 +27,8 @@ export function city(location: string): string {
   return normalizeLocation(location.split(/[,(]/)[0] ?? "");
 }
 
-/** Whether a posting's location is in the searched city. */
+/** Whether a posting's location is inside the searched place: a city, province or country. */
 export function locationMatches(postingLocation: string, searchLocation: string): boolean {
-  const want = city(searchLocation);
-  return want !== "" && city(postingLocation) === want;
+  const place = parsePlace(searchLocation);
+  return place !== null && placeContains(place, postingLocation);
 }

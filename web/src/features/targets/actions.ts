@@ -30,7 +30,12 @@ function targetFrom(form: FormData) {
   const hours = text("desiredHours");
   return {
     roleType: text("roleType"),
-    locations: splitList(text("locations")),
+    // One entry per place, as the location picker sends them; never split on commas,
+    // since "Calgary, AB" is one place.
+    locations: form
+      .getAll("location")
+      .map((v) => String(v).trim())
+      .filter(Boolean),
     workplace: text("workplace"),
     locationIsFirm: checked("locationIsFirm"),
     hideUnknownLocation: checked("hideUnknownLocation"),

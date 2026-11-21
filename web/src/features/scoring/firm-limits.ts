@@ -1,5 +1,5 @@
-import { city } from "@/features/sources/match";
 import { comparePay, type PayPeriod } from "@/features/targets/pay";
+import { locationKnown, parsePlace, placeContains } from "@/lib/places";
 
 /**
  * Firm limits run before any model call (CLAUDE.md rule 5). A field the postings do
@@ -36,18 +36,22 @@ export type FirmLimitResult = {
 };
 
 export function locationOutcome(job: JobFacts, target: TargetLimits): LimitOutcome {
-  const jobCity = city(job.location);
-  const inTargetCity = jobCity !== "" && target.locations.some((place) => city(place) === jobCity);
+  // A target's places are cities, provinces or countries ("Calgary, AB", "Alberta", "Canada").
+  const known = locationKnown(job.location);
+  const inTargetCity = target.locations.some((text) => {
+    const place = parsePlace(text);
+    return place !== null && placeContains(place, job.location);
+  });
   switch (target.workplace) {
     case "remote_only":
       if (job.remote === "remote") return "pass";
       return job.remote === "unknown" ? "unknown" : "fail";
     case "local_only":
       if (inTargetCity) return "pass";
-      return jobCity === "" ? "unknown" : "fail";
+      return known ? "fail" : "unknown";
     case "local_or_remote":
       if (inTargetCity || job.remote === "remote") return "pass";
-      return jobCity === "" && job.remote === "unknown" ? "unknown" : "fail";
+      return !known && job.remote === "unknown" ? "unknown" : "fail";
   }
 }
 

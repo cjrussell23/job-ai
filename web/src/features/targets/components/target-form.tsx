@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { type FormState, saveTargetAction } from "@/features/targets/actions";
 import type { JobTarget } from "@/features/targets/targets";
+import { LocationPicker } from "./location-picker";
 
 type Props = { target?: JobTarget; onDone?: () => void };
 
@@ -55,13 +56,11 @@ export function TargetForm({ target, onDone }: Props) {
         <legend className="px-1 text-sm font-medium">Location</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={`${id}-locations`}>Locations (comma separated)</Label>
-            <Input
-              id={`${id}-locations`}
-              name="locations"
-              placeholder="Calgary, AB"
-              defaultValue={target?.locations.join(", ") ?? "Calgary, AB"}
-            />
+            <span className="text-sm font-medium">Locations</span>
+            <LocationPicker initial={target?.locations ?? []} />
+            <span className="text-xs text-muted-foreground">
+              A city searches that city; a province or country searches all of it.
+            </span>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${id}-workplace`}>Remote work</Label>

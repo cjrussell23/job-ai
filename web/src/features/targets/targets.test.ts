@@ -131,3 +131,17 @@ test("a target's label tells same-titled targets apart", () => {
     "Software Developer · Calgary, AB",
   );
 });
+
+test("target places are saved whole and in canonical form", async () => {
+  const userId = await createMember("places@example.com");
+  const created = await createTarget(userId, {
+    roleType: "Developer",
+    locations: ["Calgary, Alberta", "AB", "canada", "Calgary, AB"],
+  });
+  if (!created.ok) throw new Error("not created");
+  expect((await getTarget(userId, created.id))?.locations).toEqual([
+    "Calgary, AB",
+    "Alberta",
+    "Canada",
+  ]);
+});

@@ -6,13 +6,13 @@ import type { SearchQuery, SearchSource } from "./source";
 
 /**
  * Job Bank (jobbank.gc.ca). Its public Atom feed searches by keyword but ignores
- * location, so each title's last two days of postings are read nationally and kept
- * only when they are in the searched city. Each kept posting's page is then read for
+ * location, so each title's last week of postings is read nationally and kept
+ * only when they are in the searched place. Each kept posting's page is then read for
  * the description, at most one request every five seconds (its robots.txt asks for that).
  */
 
 const feedUrl = (title: string) =>
-  `https://www.jobbank.gc.ca/jobsearch/feed/jobSearchRSSfeed?searchstring=${encodeURIComponent(title)}&sort=D&fage=2&rows=100`;
+  `https://www.jobbank.gc.ca/jobsearch/feed/jobSearchRSSfeed?searchstring=${encodeURIComponent(title)}&sort=D&fage=7&rows=100`;
 
 export type FeedEntry = {
   title: string;
