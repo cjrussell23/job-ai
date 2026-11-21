@@ -8,7 +8,7 @@ import { listStandingResumes } from "@/features/documents/standing";
 import { pickForTargetAction } from "@/features/documents/standing-actions";
 import { requireMember } from "@/features/members/session";
 import { appTimeZone } from "@/features/runs/time";
-import { listTargets } from "@/features/targets/targets";
+import { listTargets, targetLabel } from "@/features/targets/targets";
 
 const day = (date: Date) =>
   date.toLocaleDateString("en-CA", { timeZone: appTimeZone, dateStyle: "medium" });
@@ -50,7 +50,7 @@ async function Resumes() {
               >
                 {targets.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.roleType}
+                    {targetLabel(t)}
                   </option>
                 ))}
               </select>

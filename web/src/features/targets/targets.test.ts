@@ -12,6 +12,7 @@ import {
   getTarget,
   listTargets,
   setTargetActive,
+  targetLabel,
   updateTarget,
 } from "./targets";
 
@@ -116,4 +117,17 @@ describe("proposing search titles", () => {
     expect(target?.searchTitleState).toBe("failed");
     expect(target?.searchTitles).toEqual([]);
   });
+});
+
+test("a target's label tells same-titled targets apart", () => {
+  const base = { roleType: "Software Developer", locations: ["Calgary, AB"] };
+  expect(targetLabel({ ...base, workplace: "local_or_remote" })).toBe(
+    "Software Developer · Calgary, AB or remote",
+  );
+  expect(targetLabel({ ...base, workplace: "remote_only" })).toBe(
+    "Software Developer · Remote only",
+  );
+  expect(targetLabel({ ...base, workplace: "local_only" })).toBe(
+    "Software Developer · Calgary, AB",
+  );
 });
