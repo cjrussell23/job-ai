@@ -37,7 +37,7 @@ export type SearchSource = {
 /** A company's own career feed, listed in full and filtered locally (Greenhouse, Lever, Ashby). */
 export type CompanyFeedSource = {
   kind: "company-feed";
-  listCompany: (boardId: string) => Promise<unknown[]>;
+  listCompany: (company: { boardId: string; name: string }) => Promise<unknown[]>;
 };
 
 export type SourceImplementation = SearchSource | CompanyFeedSource;
