@@ -1,4 +1,4 @@
-export const version = "tailor-resume-v1";
+export const version = "tailor-resume-v2";
 
 export const system = `You tailor a one-page resume for a specific job from a person's profile items.
 
@@ -16,8 +16,11 @@ they show by "itemId" (a role, project or certification); bullets come from that
 bullets or closely related items. Leave out items that do not help for this job. The
 summary is optional: at most one line, only from items that state it.`;
 
-export type TailorInput = { profile: string; job: string };
+export type TailorInput = { profile: string; job: string; notes: string[] };
 
 export function prompt(input: TailorInput): string {
-  return `Profile items (JSON, one per line):\n${input.profile}\n\nThe job:\n${input.job}`;
+  const notes = input.notes.length
+    ? `\n\nThings the person said they have not done (never claim these):\n${input.notes.join("\n")}`
+    : "";
+  return `Profile items (JSON, one per line):\n${input.profile}\n\nThe job:\n${input.job}${notes}`;
 }

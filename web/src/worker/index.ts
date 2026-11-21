@@ -5,6 +5,7 @@ import { generateDocument } from "@/features/documents/generate";
 import { learnPreferencesForAll } from "@/features/feedback/learn";
 import { notifyNewMatches } from "@/features/notifications/notify";
 import { parseUpload } from "@/features/profile/parse-upload";
+import { runReview } from "@/features/profile/review";
 import { executeRun, startScheduledRunIfDue } from "@/features/runs/daily-run";
 import { runRescore } from "@/features/scoring/rescore";
 import { scoreAfterRun } from "@/features/scoring/score";
@@ -57,7 +58,12 @@ async function main() {
       const { runId } = dailyRunJob.parse(job.data);
       log.info({ runId }, "daily run starting");
       await executeRun(runId, {
+        // Preferences are learned first so today's scoring uses them.
         afterRun: async () => ({
+          preferences: await learnPreferencesForAll().catch((err: unknown) => {
+            log.error({ err }, "learning preferences failed");
+            return { learned: 0 };
+          }),
           ...(await scoreAfterRun()),
           notifications: await notifyNewMatches(),
         }),
@@ -86,6 +92,15 @@ async function main() {
       const { userId, requestId } = rescoreJob.parse(job.data);
       const { scored } = await runRescore(userId, requestId);
       log.info({ requestId, scored }, "rescore finished");
+    }
+  });
+
+  const reviewJob = z.object({ userId: z.string(), reviewId: z.uuid() });
+  await boss.work(queues.reviewProfile, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, reviewId } = reviewJob.parse(job.data);
+      log.info({ reviewId }, "reviewing profile");
+      await runReview(userId, reviewId);
     }
   });
 

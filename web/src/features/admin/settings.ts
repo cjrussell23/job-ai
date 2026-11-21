@@ -20,6 +20,7 @@ const settingsSchema = z.object({
       learnPreferences: z.string().min(1).default(scoringModel),
       draftCoverLetter: z.string().min(1).default(writingModel),
       tailorResume: z.string().min(1).default(writingModel),
+      reviewProfile: z.string().min(1).default(writingModel),
     })
     .prefault({}),
   /** Monthly AI spend cap for members without their own cap, in cents. */

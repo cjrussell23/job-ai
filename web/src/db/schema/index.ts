@@ -10,4 +10,5 @@ export * from "./matches";
 export * from "./members";
 export * from "./profile";
 export * from "./runs";
+export * from "./suggestions";
 export * from "./targets";

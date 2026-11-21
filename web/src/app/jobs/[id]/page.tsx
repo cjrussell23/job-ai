@@ -14,6 +14,7 @@ import { type Document, documentsForJob } from "@/features/documents/documents";
 import { jobsWithPostings, payText } from "@/features/jobs/jobs";
 import { requireMember } from "@/features/members/session";
 import { RefreshWhile } from "@/features/profile/components/refresh-while";
+import { ReviewPanel } from "@/features/profile/components/review-panel";
 import { sourceLabel } from "@/features/sources/catalogue";
 
 const kindLabels = { resume: "Tailored resume", cover_letter: "Cover letter" } as const;
@@ -173,6 +174,7 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
             );
           })
         )}
+        <ReviewPanel userId={userId} jobId={job.id} />
         <details className="text-sm">
           <summary className="cursor-pointer text-muted-foreground">Job description</summary>
           <p className="mt-2 whitespace-pre-line">{job.description || "No description."}</p>
