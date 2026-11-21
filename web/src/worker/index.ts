@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
+import { notifyNewMatches } from "@/features/notifications/notify";
 import { parseUpload } from "@/features/profile/parse-upload";
 import { executeRun, startScheduledRunIfDue } from "@/features/runs/daily-run";
 import { runRescore } from "@/features/scoring/rescore";
@@ -53,7 +54,12 @@ async function main() {
     for (const job of jobs) {
       const { runId } = dailyRunJob.parse(job.data);
       log.info({ runId }, "daily run starting");
-      await executeRun(runId, { afterRun: scoreAfterRun });
+      await executeRun(runId, {
+        afterRun: async () => ({
+          ...(await scoreAfterRun()),
+          notifications: await notifyNewMatches(),
+        }),
+      });
     }
   });
   await checkSchedule();

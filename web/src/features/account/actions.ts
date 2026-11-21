@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { updateMemberSettings } from "@/features/members/members";
+import { setDiscordUserId, updateMemberSettings } from "@/features/members/members";
 import { requireMember } from "@/features/members/session";
 import { normalizeEmail } from "@/features/members/sign-in-decision";
+import { sendDiscordDirectMessage, trySend } from "@/features/notifications/discord";
 import { deleteUserData } from "./user-data";
 
 export type FormState = { error?: string; message?: string };
@@ -36,4 +37,29 @@ export async function feedSettingsAction(_: FormState, form: FormData): Promise<
   revalidatePath("/");
   revalidatePath("/account");
   return result.ok ? { message: "Saved." } : { error: "Use whole numbers from 0 to 100." };
+}
+
+export async function discordAction(_: FormState, form: FormData): Promise<FormState> {
+  const { userId } = await requireMember();
+  const discordUserId = String(form.get("discordUserId") ?? "").trim();
+  const saved = await setDiscordUserId(userId, discordUserId);
+  if (!saved.ok) {
+    return {
+      error: "A Discord user ID is a long number, like 123456789012345678. See the steps below.",
+    };
+  }
+  revalidatePath("/account");
+  if (discordUserId === "") return { message: "Discord messages turned off." };
+  const test = await trySend(
+    sendDiscordDirectMessage,
+    discordUserId,
+    "You're connected. New job matches above your threshold will arrive here after each morning's run.",
+  );
+  if (test.ok) return { message: "Saved. Check Discord for a test message." };
+  return test.reason === "not_configured"
+    ? { message: "Saved. Messages start once the admin sets up the Discord bot." }
+    : {
+        error:
+          "Saved, but the test message failed. Make sure you share a server with the bot and allow direct messages from its members.",
+      };
 }

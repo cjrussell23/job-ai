@@ -129,3 +129,22 @@ export async function markProfileChanged(userId: string): Promise<void> {
     .set({ profileChangedAt: sql`now()` })
     .where(eq(members.userId, userId));
 }
+
+export type DiscordIdResult = { ok: true } | { ok: false; reason: "invalid" };
+
+/** Discord user ids are 17 to 20 digit numbers. An empty value turns messages off. */
+export async function setDiscordUserId(userId: string, raw: string): Promise<DiscordIdResult> {
+  const value = raw.trim();
+  if (value !== "" && !/^\d{17,20}$/.test(value)) return { ok: false, reason: "invalid" };
+  await db()
+    .update(members)
+    .set({ discordUserId: value === "" ? null : value })
+    .where(eq(members.userId, userId));
+  return { ok: true };
+}
+
+/** Active members who connected Discord, for the daily messages. */
+export async function membersWithDiscord(): Promise<Member[]> {
+  const rows = await db().select().from(members).where(eq(members.state, "active"));
+  return rows.filter((m) => m.discordUserId && m.userId);
+}
