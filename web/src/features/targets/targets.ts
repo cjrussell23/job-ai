@@ -157,3 +157,15 @@ export async function activeTargetSearches(): Promise<
     .where(eq(jobTargets.active, true));
   return rows.filter((r) => r.searchTitles.length > 0);
 }
+
+/** A short name telling targets apart, e.g. "Software Developer · Calgary, AB or remote". */
+export function targetLabel(
+  target: Pick<JobTarget, "roleType" | "workplace" | "locations">,
+): string {
+  const places = target.locations.join(", ");
+  const where =
+    target.workplace === "remote_only"
+      ? "Remote only"
+      : `${places || "Anywhere"}${target.workplace === "local_or_remote" ? " or remote" : ""}`;
+  return `${target.roleType} · ${where}`;
+}
