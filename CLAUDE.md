@@ -4,10 +4,13 @@ A self-hosted, invite-only web app that finds jobs daily, scores them against ea
 
 ## Stack
 
-- **Web app:** Next.js (App Router, TypeScript) with the Vercel AI SDK for all model calls.
-- **Database:** Postgres. Also backs the job queue and the daily schedule.
-- **Scraper:** a small Python service wrapping JobSpy, called by the web app over the internal Docker network.
+- **Web app:** Next.js (App Router, TypeScript), Tailwind with shadcn/ui. Server components for reads, server actions for writes, no separate REST API.
+- **Worker:** the same TypeScript package as the web app with a different entry point. It runs everything long-running: the daily run, sources, scoring, drafting, PDF rendering, notifications. The web app only enqueues work.
+- **Database:** Postgres through Drizzle. Also backs the job queue (pg-boss) and the daily schedule.
+- **AI:** the Vercel AI SDK, used only inside the `ai` feature.
+- **Scraper:** a thin Python service wrapping JobSpy, called by the worker over the internal Docker network. No database access, no business logic.
 - **PDF rendering:** Playwright, from HTML templates.
+- **Tooling:** npm, Biome, Vitest, Zod. uv and Ruff for the scraper.
 - **Deployment:** Docker Compose on a home server, reached through the existing Cloudflare Tunnel. No open router ports.
 - **Sign-in:** Google account only, for addresses the admin has invited. No passwords, no magic links, no email service.
 
@@ -39,9 +42,54 @@ Work through the phases in SPEC.md in order. Phases 1 and 2 (foundation, then th
 
 The questions left open in the first draft are settled; SPEC.md ends with the list. If something comes up that the spec does not answer, ask before assuming.
 
+## Code layout
+
+```
+web/src/app/          routes, pages and server actions, kept thin
+web/src/features/     one folder per domain area: profile, targets, jobs, sources, scoring,
+                      documents, applications, feedback, notifications, admin, ai
+web/src/db/           Drizzle schema, migrations, database client
+web/src/components/   shared interface components
+web/src/lib/          shared helpers with no domain knowledge
+web/src/worker/       worker entry point and queue handlers
+scraper/              Python JobSpy service
+```
+
+- A feature owns its queries, logic, server actions and its own components. Table definitions sit together in `src/db/`.
+- A feature reaches another feature's data through that feature's exported functions, never by querying its tables.
+- Every function that touches user-owned data takes the user id as its first argument.
+- Every model call is a named task in the `ai` feature and goes through its one wrapper, which reads the model from admin settings, checks the spend cap, records usage and validates the output. Nothing else imports the AI SDK.
+- The source interface is TypeScript. Feed sources are written in TypeScript; JobSpy is one source whose implementation calls the Python service.
+
+## Coding standards
+
+- TypeScript strict mode. No `any`, and no non-null assertions outside tests.
+- Zod at every boundary: forms, model output, source results, scraper responses. Validate all model output against a schema before saving it.
+- Names in code use the terms in CONTEXT.md exactly (`Posting`, `JobTarget`, `targetFit`), never the avoided synonyms.
+- Errors a user can cause are returned as typed results; only genuine bugs throw.
+- Structured logs carrying a run id, so one daily run can be traced across the worker and the scraper. Never log profile content or document text.
+- Comments explain why, not what.
+- Biome formats and lints `web/`; Ruff does the same for `scraper/`.
+
+## Testing
+
+This is a prototype, so keep tests light and aimed at what would hurt most.
+
+- Unit test pure logic: firm limits, job identity, pay conversion, score combining, posting lifecycle.
+- Each feature holding user-owned data has a test, against a real Postgres, proving one user cannot read another's rows.
+- Each source has a test that parses a saved sample response.
+- Fake model calls at the `ai` feature boundary. Tests never call a real model.
+- No end-to-end tests or prompt evaluations yet.
+
+## Workflow
+
+- One GitHub issue per piece of work, one short-lived branch and pull request per issue, squash-merged to `main`.
+- GitHub Actions runs type checking, linting and tests on every pull request. `main` stays deployable.
+- Direct pushes to `main` are for documentation only.
+- GitHub Actions builds the images and pushes them to GitHub's container registry; the server pulls them through Portainer. Migrations run when the web container starts.
+
 ## Conventions
 
-- TypeScript strict mode. Validate all model output against a schema before saving it.
 - Database changes go through migrations, never ad hoc.
 - Secrets live in environment variables; commit a `.env.example`, never a `.env`.
 - Prefer Canadian job sources and settings where a choice exists (the first users are in and around Calgary).

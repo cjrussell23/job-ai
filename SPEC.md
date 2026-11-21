@@ -199,24 +199,30 @@ The admin cannot read members' profiles, documents or applications from the dash
 
 ## Architecture and hosting
 
-Everything runs as Docker Compose services on the home server, reached through the existing Cloudflare Tunnel. The web app is the hub: it is the only service that talks to the database, the AI models and the notification channels.
+Everything runs as Docker Compose services on the home server, reached through the existing Cloudflare Tunnel. The web app serves the interface and enqueues work. A separate worker, built from the same TypeScript codebase, does everything long-running. Only the web app and the worker talk to the database, the AI models and the notification channels.
 
 ```
-Users (browser) --> Cloudflare Tunnel --> Web app --> AI models (Vercel AI SDK)
-                                            |  |  \
-                                  Scraper <-+  |   +--> PDF renderer
-                                     |         v   \
-                                     v      Postgres +--> Notifications
-                                Job sources
+Users (browser) --> Cloudflare Tunnel --> Web app
+                                            |
+                                            v
+                                         Postgres (data and job queue)
+                                            ^
+                                            |
+              AI models, Discord <------ Worker ------> Job sources (feeds)
+                                          |   \
+                                          |    +------> PDF renderer
+                                          v
+                                       Scraper (JobSpy) --> Job boards
 ```
 
 | Service | Technology | Responsibility |
 | --- | --- | --- |
-| Web app | Next.js with the Vercel AI SDK | Interface, sign-in, profile, board, admin dashboard and all AI calls |
+| Web app | Next.js | Interface, sign-in, profile, board, admin dashboard. Enqueues work and reads results. |
+| Worker | The same TypeScript package as the web app, started with a different command | Daily run, sources, scoring, pay estimates, document drafting, PDF rendering, notifications. All long-running AI calls. |
 | Database | Postgres | All application data |
-| Scheduler and queue | Postgres-backed job queue | Daily run, per-user scoring jobs, retries |
-| Scraper | Python service wrapping JobSpy | Job board searches, called by the web app over the internal network |
-| PDF renderer | Playwright | Resumes and cover letters from HTML templates |
+| Scheduler and queue | pg-boss, on Postgres | Daily run, per-user scoring jobs, retries |
+| Scraper | Thin Python service wrapping JobSpy | Returns raw job board results to the worker. No database access and no business logic. |
+| PDF renderer | Playwright, run by the worker | Resumes and cover letters from HTML templates |
 | Backups | Nightly encrypted database dump | Written to a second drive on the same server |
 
 The server has about 27 GiB of free memory, which is ample for Playwright.
@@ -228,15 +234,67 @@ The server has about 27 GiB of free memory, which is ample for Playwright.
 
 **AI**
 
-- All model calls go through the Vercel AI SDK from the web app.
+- All model calls go through the Vercel AI SDK, from one `ai` feature. No other code imports the SDK.
+- Each task (score target fit, score profile fit, estimate pay, parse a resume, propose search titles, draft a cover letter, tailor a resume) is a named function with a typed input and a schema-validated output.
+- Every task goes through one wrapper that reads the model from the admin settings, checks the member's spend cap, records usage and validates the result.
+- Prompts are versioned files kept beside each task.
 - One shared API key, paid for by the admin. This may change later, so the arrangement is a setting, not an assumption built into the code.
 - Claude Haiku 5.5 handles scoring, pay estimates and resume parsing; Claude Sonnet 5.5 handles writing. Both are chosen in the admin dashboard.
 - Scoring uses structured output, so results are validated before they are saved.
+
+**Sources**
+
+- The common source interface is TypeScript and lives in the worker.
+- Feed sources (Job Bank, Government of Alberta, Greenhouse, Lever, Ashby) are implemented in TypeScript directly.
+- JobSpy is one more source behind the interface; its implementation calls the Python service.
+
+**Repo layout**
+
+```
+web/                  Next.js app and worker (one package, two entry points)
+  src/app/            routes, pages and server actions, kept thin
+  src/features/       one folder per domain area, named with the glossary's terms
+  src/db/             Drizzle schema, migrations and the database client
+  src/components/     shared interface components
+  src/lib/            shared helpers with no domain knowledge
+  src/worker/         worker entry point and queue handlers
+scraper/              Python JobSpy service
+docker-compose.yml
+docs/
+```
+
+Features: `profile`, `targets`, `jobs`, `sources`, `scoring`, `documents`, `applications`, `feedback`, `notifications`, `admin`, `ai`.
+
+- A feature owns its queries, logic, server actions and its own components. The table definitions sit together in `src/db/`.
+- A feature reaches another feature's data through that feature's exported functions, not by querying its tables.
+- Every function that touches user-owned data takes the user id as its first argument.
+
+**Deployment**
+
+- GitHub Actions builds the web and scraper images and pushes them to GitHub's container registry.
+- The server pulls the images and restarts through Portainer. Rolling back is choosing the previous image.
+- Database migrations run when the web container starts.
+
+**Testing**
+
+The first build is a prototype, so testing is deliberately light and aimed at the mistakes that would hurt most.
+
+- Pure logic is unit tested: firm limits, job identity, pay conversion, score combining, posting lifecycle.
+- Each feature holding user-owned data has a test proving one user cannot read another's rows, run against a real Postgres.
+- Each source has a test that parses a saved sample response, so a format change shows up as a failing test.
+- Model calls are faked at the `ai` feature boundary, so tests never spend money.
+- End-to-end tests and prompt evaluation cases are left until the feed is in daily use.
 
 **External libraries**
 
 | Need | Choice | Note |
 | --- | --- | --- |
+| Database access | Drizzle | SQL migration files checked in |
+| Job queue | pg-boss | Uses the existing Postgres |
+| Sign-in | Better Auth (1.7.16 or later) with the Google provider and its Drizzle adapter | Sessions in Postgres. The invite check is the library's `user.validateUserInfo` callback, which runs on every Google sign-in and looks the email up in the members list. Only the Google provider is enabled, with no optional plugins. |
+| Interface | Tailwind with shadcn/ui | Server components for reads, server actions for writes, no separate REST API |
+| Validation | Zod | At every boundary: forms, model output, source results, scraper responses |
+| Tooling | npm, Biome, Vitest; uv and Ruff for the scraper | |
 | Job board search | JobSpy | Python, so it runs in its own container |
 | Company career pages | Direct calls to Greenhouse, Lever and Ashby feeds | No library needed |
 | Resume structure | JSON Resume schema | Starting point for profile items |
