@@ -12,7 +12,12 @@ async function SignInError({
 }: {
   searchParams: PageProps<"/sign-in">["searchParams"];
 }) {
-  const { error } = await searchParams;
+  const { error, deleted } = await searchParams;
+  if (deleted === "1") {
+    return (
+      <p className="text-sm text-muted-foreground">Your account and data have been deleted.</p>
+    );
+  }
   if (typeof error !== "string") return null;
   return (
     <p role="alert" className="text-sm text-destructive">

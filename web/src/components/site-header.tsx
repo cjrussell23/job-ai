@@ -23,7 +23,12 @@ export function SiteHeader({ name, isAdmin }: Props) {
             </Link>
           )}
         </nav>
-        <span className="hidden text-sm text-muted-foreground sm:inline">{name}</span>
+        <Link
+          href="/account"
+          className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline"
+        >
+          {name}
+        </Link>
         <SignOutButton />
       </div>
     </header>
