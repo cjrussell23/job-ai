@@ -1,20 +1,62 @@
-/** Anthropic list prices in US dollars per million tokens (checked 2026-11-21). */
-const pricesPerMillion: Record<string, { input: number; output: number }> = {
-  // Haiku 5.5 rates apply to prompts up to 100K tokens; every task here stays well under.
-  "claude-haiku-5-5": { input: 0.1, output: 0.5 },
-  "claude-sonnet-5-5": { input: 2, output: 10 },
-  "claude-opus-5-5": { input: 4, output: 20 },
-};
+import { log } from "@/lib/log";
+import { gateway } from "./model";
 
-// An unknown model is costed at the highest known rate, so a typo in the admin
-// settings can only make spend look higher than it is, never lower.
-const fallback = { input: 4, output: 20 };
+/** US dollars per token, as the AI Gateway reports them. */
+export type Price = { input: number; output: number };
+export type PriceList = Map<string, Price>;
 
-export function isKnownModel(model: string): boolean {
-  return model in pricesPerMillion;
+// Used when the gateway's price list cannot be read or does not include the model:
+// a deliberately high rate, so missing data can only overstate spend, never hide it.
+export const fallbackPrice: Price = { input: 15 / 1_000_000, output: 75 / 1_000_000 };
+
+const refreshAfterMs = 6 * 60 * 60 * 1000;
+let cache: { prices: PriceList; loadedAt: number } | undefined;
+let loader: () => Promise<PriceList> = loadFromGateway;
+
+async function loadFromGateway(): Promise<PriceList> {
+  const { models } = await gateway().getAvailableModels();
+  const prices: PriceList = new Map();
+  for (const model of models) {
+    if (model.pricing) {
+      prices.set(model.id, {
+        input: Number(model.pricing.input),
+        output: Number(model.pricing.output),
+      });
+    }
+  }
+  return prices;
 }
 
-export function costUsd(model: string, inputTokens: number, outputTokens: number): number {
-  const price = pricesPerMillion[model] ?? fallback;
-  return (inputTokens * price.input + outputTokens * price.output) / 1_000_000;
+/** The gateway's current price list, refreshed every few hours. */
+export async function priceList(): Promise<PriceList> {
+  if (cache && Date.now() - cache.loadedAt < refreshAfterMs) return cache.prices;
+  try {
+    cache = { prices: await loader(), loadedAt: Date.now() };
+  } catch (error) {
+    log.warn({ err: error }, "could not load AI Gateway prices; using the fallback rate");
+    return cache?.prices ?? new Map();
+  }
+  return cache.prices;
+}
+
+export async function costUsd(model: string, inputTokens: number, outputTokens: number) {
+  const price = (await priceList()).get(model);
+  if (!price) log.warn({ model }, "no gateway price for model; costing at the fallback rate");
+  const { input, output } = price ?? fallbackPrice;
+  return inputTokens * input + outputTokens * output;
+}
+
+/** Replaces the gateway price list, for tests. Returns a function that restores it. */
+export function setPriceListForTests(prices: PriceList): () => void {
+  loader = async () => prices;
+  cache = undefined;
+  return () => {
+    loader = loadFromGateway;
+    cache = undefined;
+  };
+}
+
+/** Ids of the models the gateway lists with prices, for the admin model picker. */
+export async function gatewayModelIds(): Promise<string[]> {
+  return [...(await priceList()).keys()].sort();
 }

@@ -5,8 +5,9 @@ import { appSettings } from "@/db/schema";
 
 export { type AiTask, aiTaskLabels, aiTasks } from "./ai-tasks";
 
-const scoringModel = "claude-haiku-5-5";
-const writingModel = "claude-sonnet-5-5";
+// AI Gateway model ids ("provider/model"). Any gateway model can be chosen per task.
+const scoringModel = "anthropic/claude-haiku-5.5";
+const writingModel = "anthropic/claude-sonnet-5.5";
 
 const settingsSchema = z.object({
   models: z

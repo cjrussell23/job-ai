@@ -2,7 +2,7 @@ import { generateText, NoObjectGeneratedError, Output } from "ai";
 import { getSettings } from "@/features/admin/settings";
 import { log } from "@/lib/log";
 import { languageModel } from "./model";
-import { costUsd, isKnownModel } from "./pricing";
+import { costUsd } from "./pricing";
 import type { TaskDefinition, TaskResult } from "./task";
 import { isOverCap, recordUsage } from "./usage";
 
@@ -21,8 +21,6 @@ export async function runTask<Input, Out>(
   }
 
   const model = (await getSettings()).models[task.name];
-  if (!isKnownModel(model))
-    log.warn({ task: task.name, model }, "model has no price; costing high");
   const { system, prompt } = task.buildPrompt(input);
 
   let inputTokens = 0;
@@ -56,7 +54,7 @@ export async function runTask<Input, Out>(
         promptVersion: task.promptVersion,
         inputTokens,
         outputTokens,
-        costUsd: costUsd(model, inputTokens, outputTokens),
+        costUsd: await costUsd(model, inputTokens, outputTokens),
       });
     }
   }
