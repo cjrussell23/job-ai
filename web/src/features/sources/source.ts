@@ -7,6 +7,8 @@ import { z } from "zod";
 
 export const scrapedPostingSchema = z.object({
   url: z.url(),
+  /** The employer's own application link, when a job board gives one. */
+  applyUrl: z.url().nullable().default(null),
   title: z.string().trim().min(1),
   company: z.string().trim().min(1),
   location: z.string().trim().default(""),

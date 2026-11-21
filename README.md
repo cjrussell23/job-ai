@@ -16,6 +16,12 @@ npm run dev          # web app on http://localhost:3000
 npm run worker:dev   # background worker, in a second terminal
 ```
 
+Indeed and LinkedIn go through the Python JobSpy service (needs [uv](https://docs.astral.sh/uv/)):
+
+```bash
+cd scraper && uv run job-ai-scraper   # http://localhost:8000
+```
+
 Signing in needs a Google OAuth client (Google Cloud console, "OAuth client ID", type "Web application") with the authorized redirect URI `http://localhost:3000/api/auth/callback/google`, plus one for the production address. Put its ID and secret in `web/.env`, and set `ADMIN_EMAIL` to your own Google address.
 
 Checks: `npm run typecheck`, `npm run lint`, `npm test`.

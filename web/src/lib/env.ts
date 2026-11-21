@@ -54,3 +54,14 @@ export function aiEnv(): z.infer<typeof aiEnvSchema> {
   cachedAi ??= parse(aiEnvSchema);
   return cachedAi;
 }
+
+const scraperEnvSchema = z.object({
+  /** The JobSpy scraper service, on the internal Docker network. */
+  SCRAPER_URL: z.url().default("http://scraper:8000"),
+});
+let cachedScraper: z.infer<typeof scraperEnvSchema> | undefined;
+
+export function scraperEnv(): z.infer<typeof scraperEnvSchema> {
+  cachedScraper ??= parse(scraperEnvSchema);
+  return cachedScraper;
+}

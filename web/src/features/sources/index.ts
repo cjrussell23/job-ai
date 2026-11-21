@@ -1,10 +1,13 @@
 import { createAlbertaSource } from "./alberta";
 import { createBoardSource } from "./company-boards";
 import { createJobBankSource } from "./jobbank";
+import { createJobSpySource } from "./jobspy";
 import { registerSource } from "./registry";
 
 /** Registers every built source. Imported once by the worker. */
 export function registerAllSources() {
+  registerSource("indeed", createJobSpySource("indeed"));
+  registerSource("linkedin", createJobSpySource("linkedin"));
   registerSource("jobbank", createJobBankSource());
   registerSource("alberta", createAlbertaSource());
   registerSource("greenhouse", createBoardSource("greenhouse"));
