@@ -118,3 +118,12 @@ export async function openJobIds(jobIds: string[]): Promise<Set<string>> {
     .where(and(inArray(jobs.id, jobIds), eq(jobs.state, "open")));
   return new Set(rows.map((r) => r.id));
 }
+
+/** When a job was first advertised: the earliest date any of its postings gives, if any. */
+export function postedAt(job: { postings: Pick<Posting, "postedAt">[] }): Date | null {
+  const dates = job.postings
+    .map((p) => p.postedAt)
+    .filter((d): d is Date => d !== null)
+    .map((d) => d.getTime());
+  return dates.length ? new Date(Math.min(...dates)) : null;
+}

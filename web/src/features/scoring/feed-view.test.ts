@@ -17,6 +17,7 @@ function item(overrides: {
   estimate?: { min: number; max: number; period: "hour" | "year" } | null;
   source?: string;
   seen?: Date;
+  posted?: Date[];
   title?: string;
 }): FeedItem {
   return {
@@ -33,7 +34,10 @@ function item(overrides: {
       payEstimateMax: overrides.estimate?.max ?? null,
       payEstimatePeriod: overrides.estimate?.period ?? null,
       firstSeenAt: overrides.seen ?? now,
-      postings: [{ source: overrides.source ?? "indeed" }],
+      postings: (overrides.posted ?? [null]).map((postedAt) => ({
+        source: overrides.source ?? "indeed",
+        postedAt,
+      })),
     },
     best: {
       targetId: overrides.targetId ?? "t1",
@@ -135,5 +139,29 @@ describe("sorting", () => {
     // $25/h is $52,000 a year, below the $70,000 estimate; no pay sorts last.
     expect(sorted("pay")).toEqual(["c", "b", "a"]);
     expect(annualPay(items[0] as FeedItem)).toBeNull();
+  });
+});
+
+describe("posted dates", () => {
+  test("sort by newest posted, with undated jobs last, and filter by posted age", () => {
+    const items = [
+      item({ id: "undated", seen: daysAgo(0) }),
+      item({ id: "old", posted: [daysAgo(20)] }),
+      // Two postings: the job was posted when the earliest one was.
+      item({ id: "recent", posted: [daysAgo(1), daysAgo(5)] }),
+      item({ id: "fresh", posted: [daysAgo(0.5)] }),
+    ];
+    expect(ids(applyFeedView(items, { ...defaultFeedView, sort: "posted" }, now))).toEqual([
+      "fresh",
+      "recent",
+      "old",
+      "undated",
+    ]);
+    expect(
+      ids(applyFeedView(items, { ...defaultFeedView, sort: "posted", posted: "7" }, now)),
+    ).toEqual(["fresh", "recent"]);
+    expect(
+      ids(applyFeedView(items, { ...defaultFeedView, sort: "posted", posted: "3" }, now)),
+    ).toEqual(["fresh"]);
   });
 });

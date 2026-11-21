@@ -12,6 +12,7 @@ import { approveAction, draftAction } from "@/features/documents/actions";
 import { documentBodySchema } from "@/features/documents/body";
 import { DocumentEditor } from "@/features/documents/components/document-editor";
 import { type Document, documentsForJob } from "@/features/documents/documents";
+import { JobDates } from "@/features/jobs/components/job-dates";
 import { Pay } from "@/features/jobs/components/pay";
 import { PayPanel } from "@/features/jobs/components/pay-panel";
 import { jobsWithPostings } from "@/features/jobs/jobs";
@@ -133,6 +134,7 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
             {job.company}
             {job.location && ` · ${job.location}`} · <Pay job={job} />
           </p>
+          <JobDates job={job} />
           <PayPanel
             jobId={job.id}
             hasEstimate={found.payEstimatePeriod !== null}
