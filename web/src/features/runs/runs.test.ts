@@ -183,15 +183,13 @@ describe("starting runs", () => {
 
 describe("searched targets", () => {
   test("a target counts as searched only when one of its title-and-place searches ran", async () => {
-    await db()
-      .insert(scrapeRuns)
-      .values({
-        runId: "r1",
-        source: "indeed",
-        query: "Developer",
-        location: "Calgary, AB",
-        startedAt: new Date(),
-      });
+    await db().insert(scrapeRuns).values({
+      runId: "r1",
+      source: "indeed",
+      query: "Developer",
+      location: "Calgary, AB",
+      startedAt: new Date(),
+    });
     const calgary = {
       id: "a",
       searchTitles: ["developer"],
