@@ -6,6 +6,7 @@ import { log } from "@/lib/log";
 export const queues = {
   heartbeat: "heartbeat",
   parseResume: "parse-resume",
+  proposeSearchTitles: "propose-search-titles",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];

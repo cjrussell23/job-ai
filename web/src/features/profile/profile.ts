@@ -257,3 +257,18 @@ export async function deleteItems(userId: string, ids: string[]): Promise<void> 
     .delete(profileItems)
     .where(and(eq(profileItems.userId, userId), inArray(profileItems.id, ids)));
 }
+
+/** Role titles and skills only: enough for other features to tailor a search, nothing more. */
+export async function profileHeadlines(
+  userId: string,
+): Promise<{ roleTitles: string[]; skills: string[] }> {
+  const rows = await db()
+    .select({ type: profileItems.type, title: profileItems.title })
+    .from(profileItems)
+    .where(and(eq(profileItems.userId, userId), inArray(profileItems.type, ["role", "skill"])))
+    .orderBy(asc(profileItems.position));
+  return {
+    roleTitles: rows.filter((r) => r.type === "role" && r.title).map((r) => r.title),
+    skills: rows.filter((r) => r.type === "skill" && r.title).map((r) => r.title),
+  };
+}
