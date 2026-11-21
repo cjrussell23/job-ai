@@ -104,6 +104,18 @@ _Avoid_: Profile, CV, resume data
 One fact or piece of writing in a master profile, such as a role, bullet, project, skill, certification, story or note.
 _Avoid_: Entry, record, field
 
+**Suggestion**:
+A proposed rewording of one profile item's text, which the user accepts or rejects. It never adds a fact.
+_Avoid_: Recommendation, improvement, fix
+
+**Profile question**:
+A neutral yes-or-no question about experience the master profile doesn't show. A yes adds one example as a profile item; a no is kept, never asked again, and never claimed.
+_Avoid_: Prompt, survey, gap question
+
+**Skill gap**:
+A requirement that recurs in a user's matches and that they answered no to, shown as worth learning.
+_Avoid_: Missing skill, weakness
+
 ### Documents
 
 **Standing resume**:

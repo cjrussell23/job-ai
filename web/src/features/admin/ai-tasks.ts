@@ -10,6 +10,7 @@ export const aiTasks = [
   "learnPreferences",
   "draftCoverLetter",
   "tailorResume",
+  "reviewProfile",
 ] as const;
 export type AiTask = (typeof aiTasks)[number];
 
@@ -22,4 +23,5 @@ export const aiTaskLabels: Record<AiTask, string> = {
   learnPreferences: "Learn preferences from feedback",
   draftCoverLetter: "Draft a cover letter",
   tailorResume: "Tailor a resume",
+  reviewProfile: "Review a profile (suggestions and questions)",
 };

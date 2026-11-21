@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { TaskDefinition } from "@/features/ai/task";
-import { prompt, system, type TailorInput, version } from "./prompt-v1";
+import { prompt, system, type TailorInput, version } from "./prompt-v2";
 
 const line = z.object({
   text: z.string().trim().min(1).max(600),

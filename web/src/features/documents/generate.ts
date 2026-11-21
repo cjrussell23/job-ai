@@ -4,6 +4,7 @@ import { tailorResume } from "@/features/ai/tasks/tailor-resume";
 import { jobForPrompt, jobsWithPostings } from "@/features/jobs/jobs";
 import { memberHeader } from "@/features/members/members";
 import { listItems } from "@/features/profile/profile";
+import { recordedNos } from "@/features/profile/questions";
 import { log } from "@/lib/log";
 import { assembleCoverLetter, assembleResume, itemsForPrompt, usableItems } from "./assemble";
 import { type DocumentKind, failDocument, finishDocument } from "./documents";
@@ -26,7 +27,11 @@ export async function generateDocument(
     await failDocument(userId, documentId, "That job is no longer available.");
     return;
   }
-  const [items, member] = await Promise.all([listItems(userId), memberHeader(userId)]);
+  const [items, member, notes] = await Promise.all([
+    listItems(userId),
+    memberHeader(userId),
+    recordedNos(userId),
+  ]);
   const header = { name: member.name, contact: member.email };
   const profile = itemsForPrompt(usableItems(items, kind));
   if (profile === "") {
@@ -36,7 +41,7 @@ export async function generateDocument(
   const jobText = jobForPrompt(job);
 
   if (kind === "resume") {
-    const result = await runTask(userId, tailorResume, { profile, job: jobText });
+    const result = await runTask(userId, tailorResume, { profile, job: jobText, notes });
     if (!result.ok) return failDocument(userId, documentId, failures[result.reason]);
     const { body, report } = assembleResume(result.output, items, header);
     if (report.dropped > 0)
@@ -44,8 +49,7 @@ export async function generateDocument(
     return finishDocument(userId, documentId, body);
   }
 
-  // Recorded "no" answers to profile questions arrive with phase 6; none yet.
-  const result = await runTask(userId, draftCoverLetter, { profile, job: jobText, notes: [] });
+  const result = await runTask(userId, draftCoverLetter, { profile, job: jobText, notes });
   if (!result.ok) return failDocument(userId, documentId, failures[result.reason]);
   const { body, report } = assembleCoverLetter(result.output, items, header);
   if (report.dropped > 0)

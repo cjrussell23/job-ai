@@ -6,6 +6,7 @@ import { requireMember } from "@/features/members/session";
 import { ItemCard } from "@/features/profile/components/item-card";
 import { ItemForm } from "@/features/profile/components/item-form";
 import { RefreshWhile } from "@/features/profile/components/refresh-while";
+import { ReviewPanel } from "@/features/profile/components/review-panel";
 import { UploadForm } from "@/features/profile/components/upload-form";
 import { sectionOrder } from "@/features/profile/item-fields";
 import { latestUpload, listItems, type ProfileItem } from "@/features/profile/profile";
@@ -56,6 +57,7 @@ async function Profile() {
             ever use what is written here.
           </p>
         </div>
+        {items.length > 0 && <ReviewPanel userId={userId} jobId={null} />}
         <Card>
           <CardHeader>
             <CardTitle>Start from a resume</CardTitle>

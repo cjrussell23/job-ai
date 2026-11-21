@@ -11,7 +11,9 @@ import {
   learnedPreferences,
   members,
   profileItems,
+  profileQuestions,
   resumeUploads,
+  suggestions,
   user,
 } from "@/db/schema";
 
@@ -33,6 +35,9 @@ export const userOwnedTables = {
   learned_preferences: "exported",
   documents: "exported",
   applications: "exported",
+  suggestions: "exported",
+  profile_questions: "exported",
+  profile_reviews: "excluded: a log of review requests",
   rescore_requests: "excluded: a log of rescore button use, kept for the daily limit",
   // A log of shared-job edits; the split itself stays, the log row goes with the member.
   job_splits: "excluded: log of edits to shared jobs",
@@ -58,18 +63,31 @@ export async function exportUserData(userId: string) {
     })
     .from(members)
     .where(eq(members.userId, userId));
-  const [items, uploads, targets, usage, matches, grades, preferences, docs, apps] =
-    await Promise.all([
-      db().select().from(profileItems).where(eq(profileItems.userId, userId)),
-      db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
-      db().select().from(jobTargets).where(eq(jobTargets.userId, userId)),
-      db().select().from(aiUsage).where(eq(aiUsage.userId, userId)),
-      db().select().from(jobMatches).where(eq(jobMatches.userId, userId)),
-      db().select().from(feedback).where(eq(feedback.userId, userId)),
-      db().select().from(learnedPreferences).where(eq(learnedPreferences.userId, userId)),
-      db().select().from(documents).where(eq(documents.userId, userId)),
-      db().select().from(applications).where(eq(applications.userId, userId)),
-    ]);
+  const [
+    items,
+    uploads,
+    targets,
+    usage,
+    matches,
+    grades,
+    preferences,
+    docs,
+    apps,
+    ideas,
+    questions,
+  ] = await Promise.all([
+    db().select().from(profileItems).where(eq(profileItems.userId, userId)),
+    db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
+    db().select().from(jobTargets).where(eq(jobTargets.userId, userId)),
+    db().select().from(aiUsage).where(eq(aiUsage.userId, userId)),
+    db().select().from(jobMatches).where(eq(jobMatches.userId, userId)),
+    db().select().from(feedback).where(eq(feedback.userId, userId)),
+    db().select().from(learnedPreferences).where(eq(learnedPreferences.userId, userId)),
+    db().select().from(documents).where(eq(documents.userId, userId)),
+    db().select().from(applications).where(eq(applications.userId, userId)),
+    db().select().from(suggestions).where(eq(suggestions.userId, userId)),
+    db().select().from(profileQuestions).where(eq(profileQuestions.userId, userId)),
+  ]);
   const history = apps.length
     ? await db()
         .select()
@@ -98,6 +116,8 @@ export async function exportUserData(userId: string) {
       ...a,
       history: history.filter((h) => h.applicationId === a.id),
     })),
+    suggestions: strip(ideas),
+    profileQuestions: strip(questions),
   };
 }
 
