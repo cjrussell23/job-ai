@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteAccountForm } from "@/features/account/components/delete-account-form";
+import { DiscordForm } from "@/features/account/components/discord-form";
 import { FeedSettingsForm } from "@/features/account/components/feed-settings-form";
 import { requireMember } from "@/features/members/session";
 
@@ -29,6 +30,18 @@ async function Account() {
               scoreThreshold={member.scoreThreshold}
               targetFitWeight={member.targetFitWeight}
             />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Discord messages</CardTitle>
+            <CardDescription>
+              After each morning's run, a direct message lists your new matches that score at or
+              above your threshold.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DiscordForm discordUserId={member.discordUserId} />
           </CardContent>
         </Card>
         <Card>

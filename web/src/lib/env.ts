@@ -65,3 +65,16 @@ export function scraperEnv(): z.infer<typeof scraperEnvSchema> {
   cachedScraper ??= parse(scraperEnvSchema);
   return cachedScraper;
 }
+
+const notifyEnvSchema = z.object({
+  /** Discord bot token; without it, no messages are sent. */
+  DISCORD_BOT_TOKEN: z.string().min(1).optional(),
+  /** Public address of the app, for links in messages. */
+  BETTER_AUTH_URL: z.url().optional(),
+});
+let cachedNotify: z.infer<typeof notifyEnvSchema> | undefined;
+
+export function notifyEnv(): z.infer<typeof notifyEnvSchema> {
+  cachedNotify ??= parse(notifyEnvSchema);
+  return cachedNotify;
+}

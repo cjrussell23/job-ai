@@ -41,6 +41,8 @@ export const jobMatches = pgTable(
     profileFitReason: text("profile_fit_reason"),
     profileScoredAt: timestamp("profile_scored_at", { withTimezone: true }),
     dismissed: boolean("dismissed").notNull().default(false),
+    /** When the member was told about this match, so it is never sent twice. */
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
