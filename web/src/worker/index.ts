@@ -1,4 +1,6 @@
+import { z } from "zod";
 import { closeDb } from "@/db/client";
+import { parseUpload } from "@/features/profile/parse-upload";
 import { log } from "@/lib/log";
 import { queue, queues, stopQueue } from "@/lib/queue";
 
@@ -9,6 +11,15 @@ async function main() {
   await boss.schedule(queues.heartbeat, "0 * * * *");
   await boss.work(queues.heartbeat, async () => {
     log.info("worker heartbeat");
+  });
+
+  const parseResumeJob = z.object({ userId: z.string(), uploadId: z.uuid() });
+  await boss.work(queues.parseResume, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, uploadId } = parseResumeJob.parse(job.data);
+      log.info({ jobId: job.id, uploadId }, "parsing resume");
+      await parseUpload(userId, uploadId);
+    }
   });
 
   log.info("worker started");

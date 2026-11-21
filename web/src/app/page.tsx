@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
@@ -11,8 +12,12 @@ async function Home() {
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome, {name.split(" ")[0]}</h1>
         <p className="text-muted-foreground">
-          Your master profile and job targets arrive in the next steps of the build. Once they are
-          in place, scored job matches will appear here every day.
+          Start by building your{" "}
+          <Link href="/profile" className="underline">
+            master profile
+          </Link>
+          . Job targets arrive in the next step of the build; once they are in place, scored job
+          matches will appear here every day.
         </p>
       </main>
     </>
