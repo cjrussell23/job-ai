@@ -2,6 +2,7 @@ import { inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { scrapeRuns } from "@/db/schema";
 import type { SearchQuery } from "@/features/sources/source";
+import { parsePlace } from "@/lib/places";
 
 export type TargetSearch = {
   searchTitles: string[];
@@ -36,6 +37,17 @@ export function allTitles(targets: TargetSearch[]): string[] {
 }
 
 /**
+ * The same place however it was written: "Calgary" and "Calgary, AB" are one city,
+ * "AB" and "Alberta" one province. Older runs logged places before they were canonical.
+ */
+function placeKey(text: string): string {
+  const place = parsePlace(text);
+  if (!place) return text.trim().toLowerCase();
+  if (place.kind === "city") return `city:${place.city.trim().toLowerCase()}`;
+  return place.kind === "province" ? `province:${place.province}` : `country:${place.country}`;
+}
+
+/**
  * Whether a daily run has searched this target yet: at least one of its own searches
  * (a title in one of its places) has a scrape run. Titles alone aren't enough, since
  * targets often share titles but not places.
@@ -43,8 +55,7 @@ export function allTitles(targets: TargetSearch[]): string[] {
 export async function searchedTargets(
   targets: (TargetSearch & { id: string })[],
 ): Promise<Set<string>> {
-  const keyOf = (q: SearchQuery) =>
-    `${q.title.trim().toLowerCase()}|${q.location.trim().toLowerCase()}`;
+  const keyOf = (q: SearchQuery) => `${q.title.trim().toLowerCase()}|${placeKey(q.location)}`;
   const wanted = new Map(targets.map((t) => [t.id, buildQueries([t]).map(keyOf)]));
   const titles = [
     ...new Set(targets.flatMap((t) => t.searchTitles.map((s) => s.trim().toLowerCase()))),
@@ -57,6 +68,6 @@ export async function searchedTargets(
     })
     .from(scrapeRuns)
     .where(inArray(sql`lower(${scrapeRuns.query})`, titles));
-  const done = new Set(rows.map((r) => `${r.query}|${r.location}`));
+  const done = new Set(rows.map((r) => `${r.query}|${placeKey(r.location)}`));
   return new Set([...wanted].filter(([, keys]) => keys.some((k) => done.has(k))).map(([id]) => id));
 }
