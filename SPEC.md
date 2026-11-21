@@ -263,7 +263,7 @@ docker-compose.yml
 docs/
 ```
 
-Features: `profile`, `targets`, `jobs`, `sources`, `scoring`, `documents`, `applications`, `feedback`, `notifications`, `admin`, `ai`.
+Features: `members`, `profile`, `targets`, `jobs`, `sources`, `scoring`, `documents`, `applications`, `feedback`, `notifications`, `admin`, `ai`.
 
 - A feature owns its queries, logic, server actions and its own components. The table definitions sit together in `src/db/`.
 - A feature reaches another feature's data through that feature's exported functions, not by querying its tables.
