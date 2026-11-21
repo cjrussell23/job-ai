@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
+import { bulletAdvice } from "@/features/profile/strength";
 import {
-  bulletAdvice,
   bulletCountAdvice,
   bulletRange,
   pageAdvice,

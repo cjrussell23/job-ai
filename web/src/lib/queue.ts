@@ -13,6 +13,7 @@ export const queues = {
   draftDocument: "draft-document",
   reviewProfile: "review-profile",
   pickResumeItems: "pick-resume-items",
+  reviewResume: "review-resume",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];

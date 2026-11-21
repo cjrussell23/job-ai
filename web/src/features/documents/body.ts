@@ -33,23 +33,36 @@ export type ResumeEntry = z.infer<typeof resumeEntrySchema>;
 /** A clickable link in the header, e.g. LinkedIn. Older bodies have none. */
 export const headerLinkSchema = z.object({ label: z.string(), url: z.string() });
 
+/** Contact details one by one, for icons; older bodies only have the joined `contact`. */
+export const contactPartSchema = z.object({
+  kind: z.enum(["email", "phone", "location"]),
+  text: z.string(),
+});
+
 export const resumeBodySchema = z.object({
   kind: z.literal("resume"),
   name: z.string(),
   contact: z.string(),
   links: z.array(headerLinkSchema).default([]),
+  contactParts: z.array(contactPartSchema).optional(),
   /** A short summary at the top; empty to leave it out. */
   summary: z.array(lineSchema),
   sections: z.array(
     z.object({
       id: z.string().min(1),
       heading: z.string().min(1),
+      /** Which builder section this is, e.g. "experience"; absent on tailored resumes. */
+      key: z.string().optional(),
+      /** Start this section on a new page. */
+      breakBefore: z.boolean().optional(),
       /** Consecutive entries with the same employer may print under one heading. */
       groupable: z.boolean().optional(),
       entries: z.array(resumeEntrySchema),
     }),
   ),
   skills: z.array(lineSchema),
+  /** Start the skills block on a new page. */
+  skillsBreakBefore: z.boolean().optional(),
   /** A renamed skills heading; absent means "Skills". */
   skillsHeading: z.string().optional(),
   /** Where the skills block sits among the sections; absent means after them all. */
@@ -62,6 +75,7 @@ export const coverLetterBodySchema = z.object({
   name: z.string(),
   contact: z.string(),
   links: z.array(headerLinkSchema).default([]),
+  contactParts: z.array(contactPartSchema).optional(),
   greeting: z.string(),
   paragraphs: z.array(lineSchema),
   closing: z.string(),

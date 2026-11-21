@@ -1,4 +1,5 @@
 import type { CoverLetterBody, DocumentBody, ResumeBody, ResumeEntry } from "./body";
+import { type IconName, iconSvg, platformOf } from "./icons";
 import { type Density, defaultLayout, densityStyles, type Layout, type Template } from "./layout";
 
 /**
@@ -30,7 +31,11 @@ const styles = (density: Density, template: Template, preview: boolean) => {
   h1 { font-size: 18pt; margin: 0; letter-spacing: 0.02em; }
   .contact { color: #555; font-size: 9.5pt; margin-top: 2pt; }
   h2 { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.08em; color: #333; margin: 12pt 0 4pt; }
-  .entry { margin-bottom: 7pt; break-inside: avoid; }
+  .entry { margin-bottom: 7pt; }
+  /* Pages may break between bullets, never inside one or straight after a heading. */
+  li, p, .entry-head { break-inside: avoid; }
+  h2, .entry-head { break-after: avoid; }
+  .page-break { break-before: page; }
   .entry-head { display: flex; justify-content: space-between; gap: 12pt; }
   .entry-title { font-weight: 600; }
   .entry-sub { color: #444; }
@@ -44,6 +49,8 @@ const styles = (density: Density, template: Template, preview: boolean) => {
   .group .entry { margin: 0 0 5pt; }
   .group .entry-title { font-weight: 500; font-style: italic; }
   .entry-link { color: #444; font-size: 9.5pt; }
+  .contact .item { white-space: nowrap; }
+  .icon { width: 0.95em; height: 0.95em; vertical-align: -0.12em; margin-right: 0.3em; color: #555; }
   ${template === "classic" ? classic : ""}
 `;
 };
@@ -57,17 +64,30 @@ function page(title: string, content: string, options: RenderOptions): string {
 
 const linkText = (url: string) => url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
 
-function header(body: {
-  name: string;
-  contact: string;
-  links: { label: string; url: string }[];
-}): string {
+function header(
+  body: {
+    name: string;
+    contact: string;
+    contactParts?: { kind: "email" | "phone" | "location"; text: string }[];
+    links: { label: string; url: string }[];
+  },
+  layout: Layout,
+): string {
+  const icon = (name: IconName) => (layout.headerIcons ? iconSvg(name) : "");
+  const details = body.contactParts?.length
+    ? body.contactParts.map((p) => `<span class="item">${icon(p.kind)}${esc(p.text)}</span>`)
+    : body.contact
+      ? [esc(body.contact)]
+      : [];
   const links = body.links
     // Only web links are printed as links; anything else is left out rather than trusted.
     .filter((l) => /^https?:\/\//i.test(l.url))
-    .map((l) => `<a href="${esc(l.url)}">${esc(linkText(l.url))}</a>`);
-  const parts = [...(body.contact ? [esc(body.contact)] : []), ...links];
-  return `<header><h1>${esc(body.name)}</h1><div class="contact">${parts.join(" · ")}</div></header>`;
+    .map((l) => {
+      const platform = platformOf(l.url);
+      const text = layout.headerLinks === "label" ? l.label || platform.name : linkText(l.url);
+      return `<a class="item" href="${esc(l.url)}">${icon(platform.icon)}${esc(text)}</a>`;
+    });
+  return `<header><h1>${esc(body.name)}</h1><div class="contact">${[...details, ...links].join('<span class="sep"> · </span>')}</div></header>`;
 }
 
 const isWeb = (url: string | undefined): url is string => !!url && /^https?:\/\//i.test(url);
@@ -147,14 +167,18 @@ export function renderResume(body: ResumeBody, options: RenderOptions = {}): str
         return `<div class="group"><div class="entry-head"><div><span class="entry-title" style="font-style:normal;font-weight:600">${esc(group[0]?.subtitle ?? "")}</span></div><div class="dates">${esc(spanOf(group))}</div></div>${group.map((e) => entryHtml(e, true)).join("")}</div>`;
       })
       .join("");
-    return `<h2>${esc(section.heading)}</h2>${html}`;
+    return `<h2${section.breakBefore ? ' class="page-break"' : ""}>${esc(section.heading)}</h2>${html}`;
   });
   const skills = body.skills.length
-    ? `<h2>${esc(body.skillsHeading || "Skills")}</h2><p>${body.skills.map((l) => esc(l.text)).join(" · ")}</p>`
+    ? `<h2${body.skillsBreakBefore ? ' class="page-break"' : ""}>${esc(body.skillsHeading || "Skills")}</h2><p>${body.skills.map((l) => esc(l.text)).join(" · ")}</p>`
     : "";
   const at = Math.min(body.skillsAt ?? sectionHtml.length, sectionHtml.length);
   const blocks = [...sectionHtml.slice(0, at), skills, ...sectionHtml.slice(at)].join("");
-  return page(`${body.name} resume`, `${header(body)}${summary}${blocks}`, options);
+  return page(
+    `${body.name} resume`,
+    `${header(body, options.layout ?? defaultLayout)}${summary}${blocks}`,
+    options,
+  );
 }
 
 /** The resume as plain text, for pasting into an employer's application form. */
@@ -195,7 +219,7 @@ export function renderCoverLetter(body: CoverLetterBody, options: RenderOptions 
   });
   return page(
     `${body.name} cover letter`,
-    `${header(body)}<div class="letter"><p>${esc(date)}</p><p>${esc(body.greeting)}</p>${body.paragraphs
+    `${header(body, options.layout ?? defaultLayout)}<div class="letter"><p>${esc(date)}</p><p>${esc(body.greeting)}</p>${body.paragraphs
       .map((p) => `<p>${esc(p.text)}</p>`)
       .join("")}<p>${esc(body.closing)}<br>${esc(body.name)}</p></div>`,
     options,

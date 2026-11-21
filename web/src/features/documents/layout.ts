@@ -64,6 +64,12 @@ export const layoutSchema = z.object({
   /** Several titles at one employer print under one employer heading. */
   groupRoles: z.boolean().default(true),
   showDates: z.boolean().default(true),
+  /** Sections that start on a new page; elsewhere pages break where the content allows. */
+  breakBefore: z.array(z.enum(sectionKeys)).default([]),
+  /** Links print as their address ("linkedin.com/in/you") or as a label ("LinkedIn"). */
+  headerLinks: z.enum(["address", "label"]).default("address"),
+  /** Small icons before the email, phone, location and each link. */
+  headerIcons: z.boolean().default(false),
   /** Profile item ids in the member's order for this resume; others follow in profile order. */
   itemOrder: z.array(z.uuid()).max(500).default([]),
   /** The title each role shows, chosen from its own title and alternates. */

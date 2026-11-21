@@ -29,7 +29,14 @@ export const contactSchema = z.object({
 export type ContactInput = z.input<typeof contactSchema>;
 
 /** What the top of a resume or cover letter shows. */
-export type DocumentHeader = { name: string; contact: string; links: ContactLink[] };
+export type ContactPart = { kind: "email" | "phone" | "location"; text: string };
+export type DocumentHeader = {
+  name: string;
+  contact: string;
+  /** The same details as `contact`, one by one, so a template can give each an icon. */
+  parts: ContactPart[];
+  links: ContactLink[];
+};
 
 export async function getContact(userId: string): Promise<ProfileContact | undefined> {
   const [row] = await db().select().from(profileContacts).where(eq(profileContacts.userId, userId));
@@ -64,9 +71,15 @@ export function headerFrom(
   account: { name: string; email: string },
 ): DocumentHeader {
   const email = contact?.email || account.email;
+  const parts: ContactPart[] = [
+    { kind: "email" as const, text: email },
+    { kind: "phone" as const, text: contact?.phone ?? "" },
+    { kind: "location" as const, text: contact?.location ?? "" },
+  ].filter((p) => p.text !== "");
   return {
     name: contact?.fullName || account.name,
-    contact: [email, contact?.phone, contact?.location].filter(Boolean).join(" · "),
+    contact: parts.map((p) => p.text).join(" · "),
+    parts,
     links: contact?.links ?? [],
   };
 }

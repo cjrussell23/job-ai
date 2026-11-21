@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { densityStyles, type Layout } from "@/features/documents/layout";
+import { type Atom, paginate } from "@/features/documents/paginate";
 
 const pxPerIn = 96;
 const pageWidthPx = 8.5 * pxPerIn;
@@ -37,31 +38,40 @@ export function ResumePreview({ html, layout, onMeasure }: Props) {
   const measure = useCallback(() => {
     const doc = frame.current?.contentDocument;
     if (!doc?.body) return;
-    const marginPx = densityStyles[layout.density].marginIn.y * pxPerIn;
+    const style = densityStyles[layout.density];
+    const marginPx = style.marginIn.y * pxPerIn;
     const pageContentPx = 11 * pxPerIn - 2 * marginPx;
-    const contentPx = doc.body.scrollHeight - 2 * marginPx;
-    const pages = Math.max(1, Math.ceil(contentPx / pageContentPx));
-    // Draw each page boundary inside the document so it scrolls and scales with it.
     for (const old of doc.querySelectorAll("[data-page-break]")) old.remove();
-    for (let page = 1; page < pages; page++) {
+    const bodyTop = doc.body.getBoundingClientRect().top + marginPx;
+    // The same units the print styles keep whole: the header, headings, entry heads, bullets, paragraphs.
+    const atoms: Atom[] = [...doc.querySelectorAll("header, h2, .entry-head, li, p")].map((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        top: rect.top - bodyTop,
+        bottom: rect.bottom - bodyTop,
+        keepWithNext: el.matches("h2, .entry-head"),
+        breakBefore: el.matches(".page-break"),
+      };
+    });
+    const result = paginate(atoms, pageContentPx);
+    // Draw each page boundary inside the document so it scrolls and scales with it.
+    result.breaks.forEach((at, index) => {
       const line = doc.createElement("div");
       line.dataset.pageBreak = "";
-      line.textContent = `Page ${page + 1}`;
+      line.textContent = `Page ${index + 2}`;
       line.setAttribute(
         "style",
-        `position:absolute;left:0;right:0;top:${marginPx + page * pageContentPx}px;border-top:2px dashed #e11d48;font:600 10px sans-serif;color:#e11d48;padding:2px 6px;text-align:right;pointer-events:none`,
+        `position:absolute;left:0;right:0;top:${marginPx + at - 4}px;border-top:2px dashed #e11d48;font:600 10px sans-serif;color:#e11d48;padding:2px 6px;text-align:right;pointer-events:none`,
       );
       doc.body.appendChild(line);
-    }
+    });
     doc.body.style.position = "relative";
     setHeight(Math.max(doc.body.scrollHeight, 11 * pxPerIn));
-    const style = densityStyles[layout.density];
     const linePx = (style.fontPt * style.lineHeight * pxPerIn) / 72;
-    const overflowLines = Math.max(
-      0,
-      Math.ceil((contentPx - layout.pages * pageContentPx) / linePx),
-    );
-    onMeasure({ pages, overflowLines });
+    onMeasure({
+      pages: result.pages,
+      overflowLines: Math.ceil(result.overflowPast(layout.pages) / linePx),
+    });
   }, [layout, onMeasure]);
 
   // The first document can finish loading before React attaches onLoad (it is rendered

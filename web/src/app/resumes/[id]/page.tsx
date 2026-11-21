@@ -6,7 +6,9 @@ import { RefreshWhile } from "@/components/refresh-while";
 import { SiteHeader } from "@/components/site-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { resumeBodySchema } from "@/features/documents/body";
+import { FeedbackPanel } from "@/features/documents/components/feedback-panel";
 import { ResumeBuilder } from "@/features/documents/components/resume-builder";
+import { readFeedback } from "@/features/documents/feedback";
 import { recommendedPages, yearsOfExperience } from "@/features/documents/guidance";
 import { readLayout } from "@/features/documents/layout";
 import { getStandingResume, pickedItems, resumeItems } from "@/features/documents/standing";
@@ -138,6 +140,11 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
             header={header}
             recommendedPages={recommendedPages(years)}
             yearsOfExperience={years}
+            feedback={
+              doc?.state === "approved" ? (
+                <FeedbackPanel version={doc.version} feedback={readFeedback(doc.feedback)} />
+              ) : undefined
+            }
           />
         )}
       </main>
