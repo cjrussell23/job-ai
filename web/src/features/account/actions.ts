@@ -33,6 +33,8 @@ export async function feedSettingsAction(_: FormState, form: FormData): Promise<
   const result = await updateMemberSettings(userId, {
     scoreThreshold: Number(form.get("scoreThreshold")),
     targetFitWeight: Number(form.get("targetFitWeight")),
+    summariesOn: form.get("summariesOn") === "on",
+    summaryScore: Number(form.get("summaryScore")),
   });
   revalidatePath("/");
   revalidatePath("/account");

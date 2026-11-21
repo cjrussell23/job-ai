@@ -148,6 +148,13 @@
       "when": 1795296550764,
       "tag": "0020_member_job_pay",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795297832159,
+      "tag": "0021_match_summaries",
+      "breakpoints": true
     }
   ]
 }

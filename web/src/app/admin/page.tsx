@@ -63,6 +63,7 @@ async function AdminDashboard() {
             <AiSettingsForm
               models={settings.models}
               defaultSpendCapCents={settings.defaultSpendCapCents}
+              summaryMinScore={settings.summaryMinScore}
               availableModels={availableModels}
             />
           </CardContent>

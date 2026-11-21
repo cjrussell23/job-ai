@@ -6,9 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type FormState, feedSettingsAction } from "@/features/account/actions";
 
-type Props = { scoreThreshold: number; targetFitWeight: number };
+type Props = {
+  scoreThreshold: number;
+  targetFitWeight: number;
+  summariesOn: boolean;
+  summaryScore: number;
+  /** The admin's minimum; summaries never go below it. */
+  summaryMinimum: number;
+};
 
-export function FeedSettingsForm({ scoreThreshold, targetFitWeight }: Props) {
+export function FeedSettingsForm(props: Props) {
+  const { scoreThreshold, targetFitWeight } = props;
   const [state, action, pending] = useActionState<FormState, FormData>(feedSettingsAction, {});
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -41,6 +49,30 @@ export function FeedSettingsForm({ scoreThreshold, targetFitWeight }: Props) {
             qualified for.
           </p>
         </div>
+      </div>
+      <div className="flex flex-col gap-2 rounded-md border p-3">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" name="summariesOn" defaultChecked={props.summariesOn} />
+          AI summaries of strong matches
+        </label>
+        <div className="flex flex-col gap-1.5 sm:max-w-xs">
+          <Label htmlFor="summary-score">Summarize matches scoring at least</Label>
+          <Input
+            id="summary-score"
+            name="summaryScore"
+            type="number"
+            min="0"
+            max="100"
+            defaultValue={props.summaryScore}
+            required
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          A short read of what matters to you about each strong match, written after each morning's
+          run and each rescore. Rate them to make later ones better. Each summary is one AI call
+          from your monthly allowance; the admin's minimum is {props.summaryMinimum}, so matches
+          below that are never summarized.
+        </p>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>

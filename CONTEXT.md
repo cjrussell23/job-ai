@@ -116,6 +116,14 @@ _Avoid_: Prompt, survey, gap question
 A requirement that recurs in a user's matches and that they answered no to, shown as worth learning.
 _Avoid_: Missing skill, weakness
 
+**Match summary**:
+A short AI read of one strong match for one user: what fits them, what to watch, and what to ask. Written only for matches at or above the user's summary score (never below the admin's minimum), and rated by the user to improve later ones.
+_Avoid_: Job summary, digest
+
+**Recorded pay**:
+Pay a user typed in for a job or confirmed from its estimate. Private to them, and known pay for their own firm limits and scoring (ADR 0003).
+_Avoid_: User salary, override
+
 ### Documents
 
 **Standing resume**:

@@ -73,9 +73,14 @@ export async function aiSettingsAction(_: ActionState, form: FormData): Promise<
   }
   const cents = dollarsToCents(String(form.get("defaultSpendCap") ?? ""));
   if (!Number.isFinite(cents) || cents < 0) return { error: "Enter a cap in dollars." };
+  const summaryMin = Number(form.get("summaryMinScore"));
+  if (!Number.isInteger(summaryMin) || summaryMin < 0 || summaryMin > 100) {
+    return { error: "The summary minimum is a whole number from 0 to 100." };
+  }
   const results = await Promise.all([
     setSetting("models", models),
     setSetting("defaultSpendCapCents", cents),
+    setSetting("summaryMinScore", summaryMin),
   ]);
   revalidatePath("/admin");
   return results.every((r) => r.ok)

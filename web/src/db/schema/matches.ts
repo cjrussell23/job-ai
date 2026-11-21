@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -62,3 +63,40 @@ export const rescoreRequests = pgTable("rescore_requests", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
 });
+
+export const summaryRatingReason = pgEnum("summary_rating_reason", [
+  "useful",
+  "too_generic",
+  "wrong",
+  "missed_something",
+  "too_long",
+]);
+
+/**
+ * A short AI read of one job for one member: what matters to them about it. Made for
+ * strong matches only, and rated by the member so later summaries improve.
+ */
+export const matchSummaries = pgTable(
+  "match_summaries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    headline: text("headline").notNull(),
+    /** `{ kind: "plus" | "watch" | "check", text }`: good for them, a concern, something to ask. */
+    points: jsonb("points").$type<{ kind: "plus" | "watch" | "check"; text: string }[]>().notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    rating: text("rating").$type<"up" | "down">(),
+    ratingReason: summaryRatingReason("rating_reason"),
+    ratingComment: text("rating_comment").notNull().default(""),
+    ratedAt: timestamp("rated_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("match_summaries_user_job_idx").on(table.userId, table.jobId)],
+);
+
+export type MatchSummary = typeof matchSummaries.$inferSelect;

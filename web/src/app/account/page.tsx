@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DeleteAccountForm } from "@/features/account/components/delete-account-form";
 import { DiscordForm } from "@/features/account/components/discord-form";
 import { FeedSettingsForm } from "@/features/account/components/feed-settings-form";
+import { getSettings } from "@/features/admin/settings";
 import { requireMember } from "@/features/members/session";
 
 async function Account() {
@@ -29,6 +30,9 @@ async function Account() {
             <FeedSettingsForm
               scoreThreshold={member.scoreThreshold}
               targetFitWeight={member.targetFitWeight}
+              summariesOn={member.summariesOn}
+              summaryScore={member.summaryScore}
+              summaryMinimum={(await getSettings()).summaryMinScore}
             />
           </CardContent>
         </Card>

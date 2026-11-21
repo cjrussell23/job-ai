@@ -10,6 +10,7 @@ import { localDate } from "@/features/runs/time";
 import { getTarget, listTargets } from "@/features/targets/targets";
 import { checkFirmLimits } from "./firm-limits";
 import { scoreUnscoredMatches } from "./score";
+import { summarizeStrongMatches } from "./summaries";
 
 /**
  * Rescoring (CLAUDE.md rule 5): saving a change never triggers scoring. When the
@@ -149,6 +150,7 @@ export async function runRescore(userId: string, requestId: string): Promise<{ s
       .where(inArray(jobMatches.id, targetIds));
   }
   const { scored } = await scoreUnscoredMatches({ userId });
+  await summarizeStrongMatches({ userId }).catch(() => undefined);
   await db()
     .update(rescoreRequests)
     .set({ finishedAt: sql`now()` })
