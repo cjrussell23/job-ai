@@ -7,6 +7,7 @@ import { resumeReviewAspects, reviewResume } from "@/features/ai/tasks/review-re
 import { recordedNos } from "@/features/profile/questions";
 import { queue, queues } from "@/lib/queue";
 import { resumeBodySchema } from "./body";
+import { readLayout } from "./layout";
 import { renderResumeText } from "./render";
 import { getStandingResume } from "./standing";
 
@@ -74,7 +75,7 @@ export async function runFeedback(userId: string, id: string): Promise<void> {
   const body = resumeBodySchema.safeParse(doc?.body);
   if (!doc || !body.success) return;
   const result = await runTask(userId, reviewResume, {
-    resume: renderResumeText(body.data),
+    resume: renderResumeText(body.data, readLayout(doc.layout)),
     notToClaim: await recordedNos(userId),
   });
   const at = new Date().toISOString();

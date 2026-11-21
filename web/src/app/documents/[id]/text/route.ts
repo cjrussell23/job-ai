@@ -1,5 +1,6 @@
 import { documentBodySchema } from "@/features/documents/body";
 import { getDocument } from "@/features/documents/documents";
+import { readLayout } from "@/features/documents/layout";
 import { renderResumeText } from "@/features/documents/render";
 import { requireMember } from "@/features/members/session";
 
@@ -12,7 +13,7 @@ export async function GET(_: Request, { params }: RouteContext<"/documents/[id]/
   if (!doc || !body.success) return new Response("Not found", { status: 404 });
   const text =
     body.data.kind === "resume"
-      ? renderResumeText(body.data)
+      ? renderResumeText(body.data, readLayout(doc.layout))
       : [
           body.data.name,
           body.data.contact,

@@ -182,21 +182,35 @@ export function renderResume(body: ResumeBody, options: RenderOptions = {}): str
 }
 
 /** The resume as plain text, for pasting into an employer's application form. */
-export function renderResumeText(body: ResumeBody): string {
+export function renderResumeText(body: ResumeBody, layout: Layout = defaultLayout): string {
   const out: string[] = [
     body.name,
     [body.contact, ...body.links.map((l) => l.url)].filter(Boolean).join(" | "),
     "",
   ];
   if (body.summary.length) out.push(body.summary.map((l) => l.text).join(" "), "");
+  const entryText = (entry: ResumeEntry, inGroup: boolean) => {
+    const head = [entry.title, inGroup ? "" : entry.subtitle].filter(Boolean).join(", ");
+    return [
+      [head, entry.dates].filter(Boolean).join(" | ") + (entry.url ? ` | ${entry.url}` : ""),
+      ...entry.lines.map((line) => `- ${line.text}`),
+    ];
+  };
   const sections = body.sections.map((section) => {
     const lines = [section.heading.toUpperCase()];
-    for (const entry of section.entries) {
-      const head = [entry.title, entry.subtitle].filter(Boolean).join(", ");
-      lines.push(
-        [head, entry.dates].filter(Boolean).join(" | ") + (entry.url ? ` | ${entry.url}` : ""),
-      );
-      for (const line of entry.lines) lines.push(`- ${line.text}`);
+    // Grouped the same way as the PDF and Word file, so the text (and the AI feedback that
+    // reads it) shows one employer heading over several titles.
+    const groups =
+      section.groupable && layout.groupRoles
+        ? groupEntries(section.entries)
+        : section.entries.map((e) => [e]);
+    for (const group of groups) {
+      const [only] = group;
+      if (group.length === 1 && only) lines.push(...entryText(only, false));
+      else {
+        lines.push([group[0]?.subtitle ?? "", spanOf(group)].filter(Boolean).join(" | "));
+        for (const entry of group) lines.push(...entryText(entry, true));
+      }
       lines.push("");
     }
     return lines.join("\n");
