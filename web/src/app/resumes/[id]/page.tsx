@@ -83,6 +83,12 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
           {doc?.body != null && doc.state === "approved" && (
             <div className="flex flex-wrap gap-2">
               <a
+                href={`/documents/${doc.id}/docx`}
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Word
+              </a>
+              <a
                 href={`/documents/${doc.id}/text`}
                 target="_blank"
                 rel="noreferrer"
