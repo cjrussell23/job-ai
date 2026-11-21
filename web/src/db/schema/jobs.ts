@@ -136,3 +136,31 @@ export const watchedCompanies = pgTable(
 );
 
 export type WatchedCompany = typeof watchedCompanies.$inferSelect;
+
+export const memberPaySource = pgEnum("member_pay_source", ["entered", "confirmed_estimate"]);
+
+/**
+ * Pay a member knows for a job, typed in or confirmed from the estimate (ADR 0003).
+ * Private to that member: it counts as known pay for their own firm limits and
+ * scoring, and nobody else sees it.
+ */
+export const memberJobPay = pgTable(
+  "member_job_pay",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    payMin: doublePrecision("pay_min").notNull(),
+    payMax: doublePrecision("pay_max").notNull(),
+    payPeriod: payPeriod("pay_period").notNull(),
+    source: memberPaySource("source").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("member_job_pay_user_job_idx").on(table.userId, table.jobId)],
+);
+
+export type MemberJobPay = typeof memberJobPay.$inferSelect;

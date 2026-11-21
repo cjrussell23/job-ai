@@ -4,6 +4,7 @@ import { jobMatches, rescoreRequests } from "@/db/schema";
 import { getSettings } from "@/features/admin/settings";
 import { jobIdsWithApplications } from "@/features/applications/applications";
 import { jobsWithPostings, openJobIds } from "@/features/jobs/jobs";
+import { memberPayFor, withMemberPay } from "@/features/jobs/member-pay";
 import { getMemberByUserId } from "@/features/members/members";
 import { localDate } from "@/features/runs/time";
 import { getTarget, listTargets } from "@/features/targets/targets";
@@ -166,11 +167,34 @@ export async function refilterTarget(userId: string, targetId: string): Promise<
     .select()
     .from(jobMatches)
     .where(and(eq(jobMatches.userId, userId), eq(jobMatches.targetId, targetId)));
-  const jobs = new Map((await jobsWithPostings(matches.map((m) => m.jobId))).map((j) => [j.id, j]));
+  return recheck(userId, matches, async () => target);
+}
+
+/**
+ * After a member records pay for a job, re-checks their matches for it straight away.
+ * No model is involved; scores change only when they rescore (rule 5).
+ */
+export async function refilterJobForMember(userId: string, jobId: string): Promise<number> {
+  const matches = await db()
+    .select()
+    .from(jobMatches)
+    .where(and(eq(jobMatches.userId, userId), eq(jobMatches.jobId, jobId)));
+  return recheck(userId, matches, (targetId) => getTarget(userId, targetId));
+}
+
+async function recheck(
+  userId: string,
+  matches: (typeof jobMatches.$inferSelect)[],
+  targetFor: (targetId: string) => Promise<Awaited<ReturnType<typeof getTarget>>>,
+): Promise<number> {
+  const jobIds = matches.map((m) => m.jobId);
+  const [found, pay] = await Promise.all([jobsWithPostings(jobIds), memberPayFor(userId, jobIds)]);
+  const jobs = new Map(found.map((j) => [j.id, withMemberPay(j, pay.get(j.id))]));
   let changed = 0;
   for (const match of matches) {
     const job = jobs.get(match.jobId);
-    if (!job) continue;
+    const target = await targetFor(match.targetId);
+    if (!job || !target) continue;
     const limits = checkFirmLimits(job, target);
     const result = limits.pass ? "pass" : "fail";
     if (
@@ -185,7 +209,7 @@ export async function refilterTarget(userId: string, targetId: string): Promise<
           failedLimits: limits.failed,
           unknownFields: limits.unknown,
         })
-        .where(eq(jobMatches.id, match.id));
+        .where(and(eq(jobMatches.id, match.id), eq(jobMatches.userId, userId)));
       changed++;
     }
   }

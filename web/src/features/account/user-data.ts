@@ -9,6 +9,7 @@ import {
   jobMatches,
   jobTargets,
   learnedPreferences,
+  memberJobPay,
   members,
   profileContacts,
   profileItems,
@@ -37,6 +38,7 @@ export const userOwnedTables = {
   learned_preferences: "exported",
   documents: "exported",
   applications: "exported",
+  member_job_pay: "exported",
   suggestions: "exported",
   profile_questions: "exported",
   profile_reviews: "excluded: a log of review requests",
@@ -78,6 +80,7 @@ export async function exportUserData(userId: string) {
     ideas,
     questions,
     contacts,
+    knownPay,
   ] = await Promise.all([
     db().select().from(profileItems).where(eq(profileItems.userId, userId)),
     db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
@@ -91,6 +94,7 @@ export async function exportUserData(userId: string) {
     db().select().from(suggestions).where(eq(suggestions.userId, userId)),
     db().select().from(profileQuestions).where(eq(profileQuestions.userId, userId)),
     db().select().from(profileContacts).where(eq(profileContacts.userId, userId)),
+    db().select().from(memberJobPay).where(eq(memberJobPay.userId, userId)),
   ]);
   const history = apps.length
     ? await db()
@@ -123,6 +127,7 @@ export async function exportUserData(userId: string) {
     })),
     suggestions: strip(ideas),
     profileQuestions: strip(questions),
+    jobPay: strip(knownPay),
   };
 }
 
