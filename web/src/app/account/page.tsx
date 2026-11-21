@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeleteAccountForm } from "@/features/account/components/delete-account-form";
+import { FeedSettingsForm } from "@/features/account/components/feed-settings-form";
 import { requireMember } from "@/features/members/session";
 
 async function Account() {
@@ -16,6 +17,20 @@ async function Account() {
           <h1 className="text-2xl font-semibold tracking-tight">Your account</h1>
           <p className="text-muted-foreground">Signed in as {member.email}.</p>
         </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Your feed</CardTitle>
+            <CardDescription>
+              How matches are ranked, and which ones are worth a notification.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FeedSettingsForm
+              scoreThreshold={member.scoreThreshold}
+              targetFitWeight={member.targetFitWeight}
+            />
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Download your data</CardTitle>

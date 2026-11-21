@@ -12,11 +12,12 @@ import { isOverCap, recordUsage } from "./usage";
  * output only if it matches the task's schema.
  */
 export async function runTask<Input, Out>(
-  userId: string,
+  /** The member the work is for, or null for app-level work shared by everyone. */
+  userId: string | null,
   task: TaskDefinition<Input, Out>,
   input: Input,
 ): Promise<TaskResult<Out>> {
-  if (!task.allowedPastCap && (await isOverCap(userId))) {
+  if (userId && !task.allowedPastCap && (await isOverCap(userId))) {
     return { ok: false, reason: "cap_reached" };
   }
 

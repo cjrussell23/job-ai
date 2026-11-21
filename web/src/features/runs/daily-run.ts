@@ -23,6 +23,7 @@ export type SourceSummary = {
 };
 
 export type RunSummary = {
+  scoring?: unknown;
   queries: number;
   sources: Partial<Record<AvailableSourceId, SourceSummary>>;
   newJobs: number;
@@ -77,11 +78,12 @@ export async function runDaily(runId: string, deps: Deps = {}): Promise<RunSumma
       location: string,
       startedAt: Date,
       work: () => Promise<unknown[]>,
+      foundBy: string | null,
     ) => {
       totals.searches++;
       try {
         const { postings, rejected } = parsePostings(await work());
-        const result = await ingestPostings(id, postings, runAt);
+        const result = await ingestPostings(id, postings, runAt, foundBy);
         seen.push(...result.seenPostingIds);
         boardLinks.push(...result.boardLinks);
         totals.found += postings.length;
@@ -113,19 +115,25 @@ export async function runDaily(runId: string, deps: Deps = {}): Promise<RunSumma
 
     if (source.kind === "search") {
       for (const query of queries) {
-        await record(query.title, query.location, now(), () => source.search(query));
+        await record(query.title, query.location, now(), () => source.search(query), query.title);
       }
     } else {
       const companies = (await listWatchedCompanies()).filter((c) => c.system === id);
       for (const company of companies) {
-        await record(company.name, "", now(), async () => {
-          const rows = await source.listCompany({ boardId: company.boardId, name: company.name });
-          // Boards list every job; keep only those some member is looking for.
-          return rows.filter((row) => {
-            const title = (row as { title?: unknown }).title;
-            return typeof title === "string" && titleMatches(title, titles);
-          });
-        });
+        await record(
+          company.name,
+          "",
+          now(),
+          async () => {
+            const rows = await source.listCompany({ boardId: company.boardId, name: company.name });
+            // Boards list every job; keep only those some member is looking for.
+            return rows.filter((row) => {
+              const title = (row as { title?: unknown }).title;
+              return typeof title === "string" && titleMatches(title, titles);
+            });
+          },
+          null,
+        );
       }
     }
 
@@ -192,9 +200,14 @@ export async function startManualRun(now: Date = new Date()): Promise<StartResul
 }
 
 /** Runs a started run to completion and records the outcome. */
-export async function executeRun(runId: string, deps: Deps = {}): Promise<void> {
+export async function executeRun(
+  runId: string,
+  deps: Deps & { afterRun?: () => Promise<unknown> } = {},
+): Promise<void> {
   try {
-    const summary = await runDaily(runId, deps);
+    const found = await runDaily(runId, deps);
+    // Scoring belongs to the run's outcome: a run is done once its jobs are scored.
+    const summary = deps.afterRun ? { ...found, scoring: await deps.afterRun() } : found;
     await db()
       .update(dailyRuns)
       .set({ status: "done", finishedAt: sql`now()`, summary })

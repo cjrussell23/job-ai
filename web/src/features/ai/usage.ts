@@ -9,7 +9,7 @@ export function startOfMonth(now: Date = new Date()): Date {
 }
 
 export async function recordUsage(
-  userId: string,
+  userId: string | null,
   entry: {
     task: string;
     model: string;
@@ -54,5 +54,5 @@ export async function spendThisMonthByUser(): Promise<Map<string, number>> {
     .from(aiUsage)
     .where(gte(aiUsage.createdAt, startOfMonth()))
     .groupBy(aiUsage.userId);
-  return new Map(rows.map((row) => [row.userId, row.total]));
+  return new Map(rows.flatMap((row) => (row.userId ? [[row.userId, row.total] as const] : [])));
 }

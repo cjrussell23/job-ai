@@ -14,9 +14,8 @@ export const aiUsage = pgTable(
   "ai_usage",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    /** Null for app-level work shared by everyone, such as a job's pay estimate. */
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
     task: text("task").notNull(),
     model: text("model").notNull(),
     promptVersion: text("prompt_version").notNull(),

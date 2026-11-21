@@ -7,7 +7,11 @@ export type FakeCall = { modelId: string; prompt: unknown };
  * Replaces every model with one that returns `reply` as its text. Tests never call
  * a real model. Returns the calls made and a function to restore the real model.
  */
-export function useFakeModel(reply: unknown, tokens = { input: 1000, output: 500 }) {
+export function useFakeModel(
+  /** The model's reply, or a function choosing one from the prompt sent. */
+  reply: unknown | ((prompt: string) => unknown),
+  tokens = { input: 1000, output: 500 },
+) {
   const calls: FakeCall[] = [];
   const restore = setModelFactoryForTests(
     (modelId) =>
@@ -15,9 +19,11 @@ export function useFakeModel(reply: unknown, tokens = { input: 1000, output: 500
         modelId,
         doGenerate: async (options) => {
           calls.push({ modelId, prompt: options.prompt });
+          const answer =
+            typeof reply === "function" ? reply(JSON.stringify(options.prompt)) : reply;
           return {
             content: [
-              { type: "text", text: typeof reply === "string" ? reply : JSON.stringify(reply) },
+              { type: "text", text: typeof answer === "string" ? answer : JSON.stringify(answer) },
             ],
             finishReason: { unified: "stop", raw: undefined },
             usage: {

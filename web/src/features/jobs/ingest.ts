@@ -26,6 +26,8 @@ export async function ingestPostings(
   source: string,
   scraped: ScrapedPosting[],
   seenAt: Date = new Date(),
+  /** The search title these postings came back for, if any. */
+  foundBy: string | null = null,
 ): Promise<IngestResult> {
   const result: IngestResult = {
     found: scraped.length,
@@ -87,6 +89,7 @@ export async function ingestPostings(
             company: posting.company,
             location: posting.location,
             postedAt: posting.postedAt,
+            foundBy,
             firstSeenAt: seenAt,
             lastSeenAt: seenAt,
           })
