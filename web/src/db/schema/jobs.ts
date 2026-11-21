@@ -14,6 +14,7 @@ import { user } from "./auth";
 export const jobState = pgEnum("job_state", ["open", "closed"]);
 export const remoteType = pgEnum("remote_type", ["remote", "hybrid", "onsite", "unknown"]);
 export const payPeriod = pgEnum("pay_period", ["hour", "day", "week", "month", "year"]);
+export const certainty = pgEnum("certainty", ["low", "medium", "high"]);
 
 /** One role at one company in one location, shared by all users (ADR 0001). */
 export const jobs = pgTable(
@@ -31,6 +32,12 @@ export const jobs = pgTable(
     payMax: doublePrecision("pay_max"),
     payPeriod: payPeriod("pay_period"),
     hoursPerWeek: integer("hours_per_week"),
+    /** A guess for jobs that state no pay (ADR 0002): always labelled, never a firm limit. */
+    payEstimateMin: doublePrecision("pay_estimate_min"),
+    payEstimateMax: doublePrecision("pay_estimate_max"),
+    payEstimatePeriod: payPeriod("pay_estimate_period"),
+    payEstimateCertainty: certainty("pay_estimate_certainty"),
+    payEstimateReason: text("pay_estimate_reason"),
     description: text("description").notNull().default(""),
     /** Greenhouse, Lever, Workday and so on, from the posting links; for auto-apply later. */
     applicationSystem: text("application_system"),
@@ -58,6 +65,8 @@ export const postings = pgTable(
     company: text("company").notNull(),
     location: text("location").notNull(),
     postedAt: timestamp("posted_at", { withTimezone: true }),
+    /** The search title that first found this posting; links search results to targets. */
+    foundBy: text("found_by"),
     firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
     /** Consecutive daily runs in which the source no longer listed this posting. */

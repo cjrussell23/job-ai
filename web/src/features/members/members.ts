@@ -106,3 +106,18 @@ export async function setSpendCap(
     .returning({ id: members.id });
   return updated.length > 0 ? { ok: true } : { ok: false, reason: "not_found" };
 }
+
+export type MemberSettingsResult = { ok: true } | { ok: false; reason: "invalid" };
+
+/** A member's own feed settings: notification threshold and target-fit weight. */
+export async function updateMemberSettings(
+  userId: string,
+  settings: { scoreThreshold: number; targetFitWeight: number },
+): Promise<MemberSettingsResult> {
+  const valid = (n: number) => Number.isInteger(n) && n >= 0 && n <= 100;
+  if (!valid(settings.scoreThreshold) || !valid(settings.targetFitWeight)) {
+    return { ok: false, reason: "invalid" };
+  }
+  await db().update(members).set(settings).where(eq(members.userId, userId));
+  return { ok: true };
+}

@@ -3,6 +3,7 @@ export * from "./app-settings";
 export * from "./auth";
 export * from "./backups";
 export * from "./jobs";
+export * from "./matches";
 export * from "./members";
 export * from "./profile";
 export * from "./runs";

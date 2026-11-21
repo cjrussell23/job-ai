@@ -3,6 +3,7 @@ import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
 import { parseUpload } from "@/features/profile/parse-upload";
 import { executeRun, startScheduledRunIfDue } from "@/features/runs/daily-run";
+import { scoreAfterRun } from "@/features/scoring/score";
 import { registerAllSources } from "@/features/sources";
 import { proposeTitlesForTarget } from "@/features/targets/propose-titles";
 import { log } from "@/lib/log";
@@ -51,7 +52,7 @@ async function main() {
     for (const job of jobs) {
       const { runId } = dailyRunJob.parse(job.data);
       log.info({ runId }, "daily run starting");
-      await executeRun(runId);
+      await executeRun(runId, { afterRun: scoreAfterRun });
     }
   });
   await checkSchedule();

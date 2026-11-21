@@ -10,6 +10,7 @@ export const proposeSearchTitles: TaskDefinition<Input, z.infer<typeof schema>> 
   promptVersion: version,
   schema,
   allowedPastCap: false,
-  maxOutputTokens: 1000,
+  // Room for the model's thinking, which counts toward this limit.
+  maxOutputTokens: 2000,
   buildPrompt: (input) => ({ system, prompt: prompt(input) }),
 };
