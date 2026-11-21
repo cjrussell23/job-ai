@@ -7,6 +7,7 @@ import { AiSettingsForm } from "@/features/admin/components/ai-settings-form";
 import { BackupCard } from "@/features/admin/components/backup-card";
 import { InviteForm } from "@/features/admin/components/invite-form";
 import { MembersTable } from "@/features/admin/components/members-table";
+import { SourcesForm } from "@/features/admin/components/sources-form";
 import { getSettings } from "@/features/admin/settings";
 import { gatewayModelIds } from "@/features/ai/pricing";
 import { spendThisMonthByUser } from "@/features/ai/usage";
@@ -60,6 +61,17 @@ async function AdminDashboard() {
               defaultSpendCapCents={settings.defaultSpendCapCents}
               availableModels={availableModels}
             />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Sources</CardTitle>
+            <CardDescription>
+              Where the daily search looks. Switch a source off if it breaks; the rest keep running.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SourcesForm enabled={settings.sourcesEnabled} />
           </CardContent>
         </Card>
         <BackupCard status={backups} />

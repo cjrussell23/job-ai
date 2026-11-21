@@ -16,6 +16,7 @@ export default defineConfig({
     // Database tests share one test database, so files run one at a time.
     fileParallelism: false,
     env: {
+      LOG_LEVEL: "silent",
       BETTER_AUTH_URL: "http://localhost:3000",
       BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-0000",
       GOOGLE_CLIENT_ID: "test-client",

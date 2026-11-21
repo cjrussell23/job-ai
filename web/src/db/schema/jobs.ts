@@ -1,0 +1,106 @@
+import {
+  doublePrecision,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { user } from "./auth";
+
+export const jobState = pgEnum("job_state", ["open", "closed"]);
+export const remoteType = pgEnum("remote_type", ["remote", "hybrid", "onsite", "unknown"]);
+export const payPeriod = pgEnum("pay_period", ["hour", "day", "week", "month", "year"]);
+
+/** One role at one company in one location, shared by all users (ADR 0001). */
+export const jobs = pgTable(
+  "jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Normalized company, title and location; how postings find their job. */
+    identityKey: text("identity_key").notNull().unique(),
+    company: text("company").notNull(),
+    title: text("title").notNull(),
+    location: text("location").notNull(),
+    remote: remoteType("remote").notNull().default("unknown"),
+    /** Stated pay, as posted. Null when no posting states it. */
+    payMin: doublePrecision("pay_min"),
+    payMax: doublePrecision("pay_max"),
+    payPeriod: payPeriod("pay_period"),
+    hoursPerWeek: integer("hours_per_week"),
+    description: text("description").notNull().default(""),
+    /** Greenhouse, Lever, Workday and so on, from the posting links; for auto-apply later. */
+    applicationSystem: text("application_system"),
+    state: jobState("state").notNull().default("open"),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+  },
+  (table) => [index("jobs_state_idx").on(table.state)],
+);
+
+export type Job = typeof jobs.$inferSelect;
+
+/** One advertisement of a job on one source. */
+export const postings = pgTable(
+  "postings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    source: text("source").notNull(),
+    url: text("url").notNull().unique(),
+    /** As the source wrote them, before normalization. */
+    title: text("title").notNull(),
+    company: text("company").notNull(),
+    location: text("location").notNull(),
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Consecutive daily runs in which the source no longer listed this posting. */
+    missingRuns: integer("missing_runs").notNull().default(0),
+  },
+  (table) => [
+    index("postings_job_idx").on(table.jobId),
+    index("postings_source_idx").on(table.source),
+  ],
+);
+
+export type Posting = typeof postings.$inferSelect;
+
+/** A member's "these are not the same job": the posting was moved to a job of its own. */
+export const jobSplits = pgTable("job_splits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  postingId: uuid("posting_id")
+    .notNull()
+    .references(() => postings.id, { onDelete: "cascade" }),
+  fromJobId: uuid("from_job_id").notNull(),
+  toJobId: uuid("to_job_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One search of one source within a daily run, for spotting broken sources. */
+export const scrapeRuns = pgTable(
+  "scrape_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: text("run_id").notNull(),
+    source: text("source").notNull(),
+    /** The search title or watched company that was queried. */
+    query: text("query").notNull(),
+    location: text("location").notNull().default(""),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }).notNull().defaultNow(),
+    found: integer("found").notNull().default(0),
+    newPostings: integer("new_postings").notNull().default(0),
+    error: text("error"),
+  },
+  (table) => [index("scrape_runs_finished_idx").on(table.finishedAt)],
+);
+
+export type ScrapeRun = typeof scrapeRuns.$inferSelect;

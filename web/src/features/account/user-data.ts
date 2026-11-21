@@ -15,6 +15,8 @@ export const userOwnedTables = {
   resume_uploads: "exported",
   job_targets: "exported",
   ai_usage: "exported",
+  // A log of shared-job edits; the split itself stays, the log row goes with the member.
+  job_splits: "excluded: log of edits to shared jobs",
   // Sign-in records hold tokens; they are never exported.
   session: "excluded: sign-in tokens",
   account: "excluded: Google OAuth tokens",
