@@ -15,9 +15,12 @@ async function Home() {
           Start by building your{" "}
           <Link href="/profile" className="underline">
             master profile
+          </Link>{" "}
+          and describing the jobs you want as{" "}
+          <Link href="/targets" className="underline">
+            job targets
           </Link>
-          . Job targets arrive in the next step of the build; once they are in place, scored job
-          matches will appear here every day.
+          . Scored job matches will appear here every day once the daily feed is built.
         </p>
       </main>
     </>
