@@ -17,3 +17,10 @@ test("applies defaults", async () => {
   const { env } = await import("./env");
   expect(env().LOG_LEVEL).toBe("info");
 });
+
+test("an empty optional variable counts as unset", async () => {
+  vi.stubEnv("DISCORD_BOT_TOKEN", "");
+  vi.stubEnv("BETTER_AUTH_URL", "");
+  const { notifyEnv } = await import("./env");
+  expect(notifyEnv()).toEqual({ DISCORD_BOT_TOKEN: undefined, BETTER_AUTH_URL: undefined });
+});
