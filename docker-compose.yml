@@ -20,6 +20,8 @@ services:
   web:
     image: ghcr.io/cjrussell23/job-ai-web:${IMAGE_TAG:-latest}
     build: ./web
+    # The tunnel reaches the app by this name: http://job-ai-web:3000
+    container_name: job-ai-web
     restart: unless-stopped
     env_file: .env
     environment:
@@ -28,9 +30,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Reached only through the Cloudflare Tunnel; bound to localhost so no port is exposed on the network.
-    ports:
-      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    # No published port: the only way in is the Cloudflare Tunnel, whose cloudflared
+    # container shares the "tunnel" network below.
+    networks:
+      - default
+      - tunnel
 
   worker:
     image: ghcr.io/cjrussell23/job-ai-web:${IMAGE_TAG:-latest}
@@ -59,6 +63,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+networks:
+  tunnel:
+    external: true
+    # The Docker network the cloudflared container is on.
+    name: ${TUNNEL_NETWORK:-cloudflared-complete_default}
 
 volumes:
   postgres-data:
