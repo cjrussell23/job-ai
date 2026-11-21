@@ -17,7 +17,8 @@ const authEnvSchema = z.object({
 });
 
 const aiEnvSchema = z.object({
-  ANTHROPIC_API_KEY: z.string().min(1),
+  /** Vercel AI Gateway key; every model call goes through the gateway. */
+  AI_GATEWAY_API_KEY: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -1,14 +1,18 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
-import type { LanguageModel } from "ai";
+import { createGateway, type LanguageModel } from "ai";
 import { aiEnv } from "@/lib/env";
 
 export type ModelFactory = (modelId: string) => LanguageModel;
 
-let anthropicFactory: ModelFactory | undefined;
+let gatewayProvider: ReturnType<typeof createGateway> | undefined;
+
+/** The Vercel AI Gateway, which routes "provider/model" ids to any supported provider. */
+export function gateway() {
+  gatewayProvider ??= createGateway({ apiKey: aiEnv().AI_GATEWAY_API_KEY });
+  return gatewayProvider;
+}
 
 function defaultFactory(modelId: string): LanguageModel {
-  anthropicFactory ??= createAnthropic({ apiKey: aiEnv().ANTHROPIC_API_KEY });
-  return anthropicFactory(modelId);
+  return gateway()(modelId);
 }
 
 let factory: ModelFactory = defaultFactory;

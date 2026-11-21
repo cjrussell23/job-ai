@@ -8,6 +8,7 @@ import { BackupCard } from "@/features/admin/components/backup-card";
 import { InviteForm } from "@/features/admin/components/invite-form";
 import { MembersTable } from "@/features/admin/components/members-table";
 import { getSettings } from "@/features/admin/settings";
+import { gatewayModelIds } from "@/features/ai/pricing";
 import { spendThisMonthByUser } from "@/features/ai/usage";
 import { listMembers } from "@/features/members/members";
 import { requireAdmin } from "@/features/members/session";
@@ -15,11 +16,12 @@ import { requireAdmin } from "@/features/members/session";
 // The dashboard deliberately shows no member's profile, documents or applications.
 async function AdminDashboard() {
   const { name } = await requireAdmin();
-  const [members, settings, spendByUser, backups] = await Promise.all([
+  const [members, settings, spendByUser, backups, availableModels] = await Promise.all([
     listMembers(),
     getSettings(),
     spendThisMonthByUser(),
     backupStatus(),
+    gatewayModelIds(),
   ]);
   return (
     <>
@@ -48,14 +50,15 @@ async function AdminDashboard() {
           <CardHeader>
             <CardTitle>AI</CardTitle>
             <CardDescription>
-              The model used for each task, and the monthly spend cap for members without their own.
-              The API key is set on the server, not here.
+              The Vercel AI Gateway model (provider/model) used for each task, and the monthly spend
+              cap for members without their own. The gateway key is set on the server, not here.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <AiSettingsForm
               models={settings.models}
               defaultSpendCapCents={settings.defaultSpendCapCents}
+              availableModels={availableModels}
             />
           </CardContent>
         </Card>

@@ -234,12 +234,13 @@ The server has about 27 GiB of free memory, which is ample for Playwright.
 
 **AI**
 
-- All model calls go through the Vercel AI SDK, from one `ai` feature. No other code imports the SDK.
+- All model calls go through the Vercel AI SDK and the Vercel AI Gateway, from one `ai` feature. No other code imports the SDK, and no provider is called directly. Models are named `provider/model`, so any gateway model can be chosen per task.
 - Each task (score target fit, score profile fit, estimate pay, parse a resume, propose search titles, draft a cover letter, tailor a resume) is a named function with a typed input and a schema-validated output.
 - Every task goes through one wrapper that reads the model from the admin settings, checks the member's spend cap, records usage and validates the result.
 - Prompts are versioned files kept beside each task.
-- One shared API key, paid for by the admin. This may change later, so the arrangement is a setting, not an assumption built into the code.
-- Claude Haiku 5.5 handles scoring, pay estimates and resume parsing; Claude Sonnet 5.5 handles writing. Both are chosen in the admin dashboard.
+- One shared Vercel AI Gateway key, paid for by the admin. This may change later, so the arrangement is a setting, not an assumption built into the code.
+- Defaults: `anthropic/claude-haiku-5.5` for scoring, pay estimates, resume parsing and search titles; `anthropic/claude-sonnet-5.5` for writing. Both are changed in the admin dashboard.
+- Spend is priced from the gateway's own model price list, refreshed every few hours; a model it does not price is costed at a deliberately high rate.
 - Scoring uses structured output, so results are validated before they are saved.
 
 **Sources**
@@ -393,8 +394,8 @@ All the open questions from the first draft are settled.
 
 | Question | Decision |
 | --- | --- |
-| Who pays for AI usage | One shared key paid by the admin, kept configurable |
-| Models and cap | Haiku 5.5 for scoring, Sonnet 5.5 for writing, $10 per member per month by default |
+| Who pays for AI usage | One shared Vercel AI Gateway key paid by the admin, kept configurable |
+| Models and cap | Through the Vercel AI Gateway: Haiku 5.5 for scoring, Sonnet 5.5 for writing by default, $10 per member per month |
 | Tunnel | The existing Cloudflare Tunnel |
 | Sign-in | Google account only, invited by the admin |
 | First notification channel | Discord, then ntfy |

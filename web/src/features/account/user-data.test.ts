@@ -29,7 +29,7 @@ async function seed(userId: string) {
   await db().insert(aiUsage).values({
     userId,
     task: "parseResume",
-    model: "claude-haiku-5-5",
+    model: "anthropic/claude-haiku-5.5",
     promptVersion: "v1",
     inputTokens: 10,
     outputTokens: 10,

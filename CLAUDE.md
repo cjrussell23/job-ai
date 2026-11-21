@@ -7,7 +7,7 @@ A self-hosted, invite-only web app that finds jobs daily, scores them against ea
 - **Web app:** Next.js (App Router, TypeScript), Tailwind with shadcn/ui. Server components for reads, server actions for writes, no separate REST API.
 - **Worker:** the same TypeScript package as the web app with a different entry point. It runs everything long-running: the daily run, sources, scoring, drafting, PDF rendering, notifications. The web app only enqueues work.
 - **Database:** Postgres through Drizzle. Also backs the job queue (pg-boss) and the daily schedule.
-- **AI:** the Vercel AI SDK, used only inside the `ai` feature.
+- **AI:** the Vercel AI SDK through the Vercel AI Gateway (one `AI_GATEWAY_API_KEY`, models named `provider/model`), used only inside the `ai` feature. No direct provider SDKs or keys.
 - **Scraper:** a thin Python service wrapping JobSpy, called by the worker over the internal Docker network. No database access, no business logic.
 - **PDF rendering:** Playwright, from HTML templates.
 - **Tooling:** npm, Biome, Vitest, Zod. uv and Ruff for the scraper.
@@ -58,7 +58,7 @@ scraper/              Python JobSpy service
 - A feature owns its queries, logic, server actions and its own components. Table definitions sit together in `src/db/`.
 - A feature reaches another feature's data through that feature's exported functions, never by querying its tables.
 - Every function that touches user-owned data takes the user id as its first argument.
-- Every model call is a named task in the `ai` feature and goes through its one wrapper, which reads the model from admin settings, checks the spend cap, records usage and validates the output. Nothing else imports the AI SDK.
+- Every model call is a named task in the `ai` feature and goes through its one wrapper, which reads the model from admin settings, checks the spend cap, records usage (priced from the gateway's model list) and validates the output. Nothing else imports the AI SDK.
 - The source interface is TypeScript. Feed sources are written in TypeScript; JobSpy is one source whose implementation calls the Python service.
 
 ## Coding standards

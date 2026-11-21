@@ -7,12 +7,22 @@ import { Label } from "@/components/ui/label";
 import { type ActionState, aiSettingsAction } from "@/features/admin/actions";
 import { type AiTask, aiTaskLabels, aiTasks } from "@/features/admin/ai-tasks";
 
-type Props = { models: Record<AiTask, string>; defaultSpendCapCents: number };
+type Props = {
+  models: Record<AiTask, string>;
+  defaultSpendCapCents: number;
+  /** Model ids the AI Gateway offers, as suggestions. */
+  availableModels: string[];
+};
 
-export function AiSettingsForm({ models, defaultSpendCapCents }: Props) {
+export function AiSettingsForm({ models, defaultSpendCapCents, availableModels }: Props) {
   const [state, action, pending] = useActionState<ActionState, FormData>(aiSettingsAction, {});
   return (
     <form action={action} className="flex flex-col gap-4">
+      <datalist id="gateway-models">
+        {availableModels.map((id) => (
+          <option key={id} value={id} />
+        ))}
+      </datalist>
       <div className="grid gap-3 sm:grid-cols-2">
         {aiTasks.map((task) => (
           <div key={task} className="flex flex-col gap-1.5">

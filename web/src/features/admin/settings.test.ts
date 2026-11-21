@@ -8,8 +8,8 @@ afterAll(closeDb);
 
 test("defaults apply when nothing is stored", async () => {
   const settings = await getSettings();
-  expect(settings.models.scoreTargetFit).toBe("claude-haiku-5-5");
-  expect(settings.models.draftCoverLetter).toBe("claude-sonnet-5-5");
+  expect(settings.models.scoreTargetFit).toBe("anthropic/claude-haiku-5.5");
+  expect(settings.models.draftCoverLetter).toBe("anthropic/claude-sonnet-5.5");
   expect(settings.defaultSpendCapCents).toBe(1000);
   expect(settings.rescoreLimitPerDay).toBe(1);
 });
