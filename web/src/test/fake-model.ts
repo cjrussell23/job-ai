@@ -7,7 +7,7 @@ export type FakeCall = { modelId: string; prompt: unknown };
  * Replaces every model with one that returns `reply` as its text. Tests never call
  * a real model. Returns the calls made and a function to restore the real model.
  */
-export function useFakeModel(
+export function fakeModel(
   /** The model's reply, or a function choosing one from the prompt sent. */
   reply: unknown | ((prompt: string) => unknown),
   tokens = { input: 1000, output: 500 },

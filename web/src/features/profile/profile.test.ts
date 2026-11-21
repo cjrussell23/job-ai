@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, test } from "vitest";
 import { closeDb } from "@/db/client";
 import { resetDb } from "@/test/db";
-import { useFakeModel } from "@/test/fake-model";
+import { fakeModel } from "@/test/fake-model";
 import { createMember } from "@/test/fixtures";
 import { parseUpload } from "./parse-upload";
 import {
@@ -88,7 +88,7 @@ describe("parsing an uploaded resume", () => {
   test("saves parsed items with their bullets, marked as from the upload", async () => {
     const userId = await createMember("a@example.com");
     const uploadId = await createUpload(userId, "cv.txt", "Engineer at Acme. Shipped it.");
-    restore = useFakeModel({
+    restore = fakeModel({
       items: [
         {
           type: "role",
@@ -128,7 +128,7 @@ describe("parsing an uploaded resume", () => {
   test("output that fails the schema saves nothing and explains the failure", async () => {
     const userId = await createMember("a@example.com");
     const uploadId = await createUpload(userId, "cv.txt", "text");
-    restore = useFakeModel({ items: [{ type: "spaceship" }] }).restore;
+    restore = fakeModel({ items: [{ type: "spaceship" }] }).restore;
 
     await parseUpload(userId, uploadId);
 

@@ -8,7 +8,7 @@ import { createItem } from "@/features/profile/profile";
 import { parsePostings } from "@/features/sources/source";
 import { approveSearchTitles, createTarget, updateTarget } from "@/features/targets/targets";
 import { resetDb } from "@/test/db";
-import { useFakeModel } from "@/test/fake-model";
+import { fakeModel } from "@/test/fake-model";
 import { createMember } from "@/test/fixtures";
 import { refilterTarget, requestRescore, rescoreStatus, runRescore } from "./rescore";
 import { scoreAfterRun } from "./score";
@@ -43,7 +43,7 @@ async function scoredMember() {
     },
   ]);
   await ingestPostings("indeed", postings, new Date(), "Barista");
-  restore = useFakeModel(replies).restore;
+  restore = fakeModel(replies).restore;
   scoreGiven = 80;
   await scoreAfterRun();
   return { userId, targetId: target.id };
@@ -109,7 +109,7 @@ describe("rescoring", () => {
 describe("firm limits apply at once", () => {
   test("tightening a firm pay limit hides the match without any model call", async () => {
     const { userId, targetId } = await scoredMember();
-    const fake = useFakeModel(replies);
+    const fake = fakeModel(replies);
     restore = fake.restore;
     await updateTarget(userId, targetId, {
       roleType: "Barista",
