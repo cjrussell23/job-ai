@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ApplicationPanel } from "@/features/applications/components/application-panel";
 import { approveAction, draftAction } from "@/features/documents/actions";
 import { documentBodySchema } from "@/features/documents/body";
 import { DocumentEditor } from "@/features/documents/components/document-editor";
@@ -138,6 +139,7 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
             ))}
           </ul>
         </div>
+        <ApplicationPanel userId={userId} jobId={job.id} />
         {docs.length === 0 ? (
           <Card>
             <CardHeader>
