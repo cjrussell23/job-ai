@@ -43,6 +43,7 @@ async function draftResume(userId: string, jobId: string): Promise<string> {
     kind: "resume",
     name: "Jane",
     contact: "",
+    links: [],
     summary: [],
     sections: [],
     skills: [],

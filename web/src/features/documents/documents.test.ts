@@ -29,6 +29,7 @@ const letter = (): CoverLetterBody => ({
   kind: "cover_letter",
   name: "Jane",
   contact: "jane@example.com",
+  links: [],
   greeting: "Dear Hiring Team,",
   paragraphs: [
     { id: "p1", text: "I built the billing API.", sources: [src], origin: "reworded" },

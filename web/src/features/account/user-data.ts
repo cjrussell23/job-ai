@@ -10,6 +10,7 @@ import {
   jobTargets,
   learnedPreferences,
   members,
+  profileContacts,
   profileItems,
   profileQuestions,
   resumeUploads,
@@ -27,6 +28,7 @@ export const userOwnedTables = {
   user: "exported",
   members: "exported",
   profile_items: "exported",
+  profile_contacts: "exported",
   resume_uploads: "exported",
   job_targets: "exported",
   ai_usage: "exported",
@@ -75,6 +77,7 @@ export async function exportUserData(userId: string) {
     apps,
     ideas,
     questions,
+    contacts,
   ] = await Promise.all([
     db().select().from(profileItems).where(eq(profileItems.userId, userId)),
     db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
@@ -87,6 +90,7 @@ export async function exportUserData(userId: string) {
     db().select().from(applications).where(eq(applications.userId, userId)),
     db().select().from(suggestions).where(eq(suggestions.userId, userId)),
     db().select().from(profileQuestions).where(eq(profileQuestions.userId, userId)),
+    db().select().from(profileContacts).where(eq(profileContacts.userId, userId)),
   ]);
   const history = apps.length
     ? await db()
@@ -104,6 +108,7 @@ export async function exportUserData(userId: string) {
   return {
     exportedAt: new Date().toISOString(),
     account: { ...account, ...member },
+    contact: strip(contacts)[0] ?? null,
     profileItems: strip(items),
     resumeUploads: strip(uploads),
     jobTargets: strip(targets),

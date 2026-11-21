@@ -39,6 +39,8 @@ export const documents = pgTable(
     /** A member's own name for a standing resume; empty for tailored documents. */
     name: text("name").notNull().default(""),
     template: text("template").notNull().default("clean"),
+    /** Builder layout choices (pages, density, section order); see features/documents/layout.ts. */
+    layout: jsonb("layout"),
     state: documentState("state").notNull().default("generating"),
     body: jsonb("body"),
     /** Increases with every regeneration, so a member can tell drafts apart. */

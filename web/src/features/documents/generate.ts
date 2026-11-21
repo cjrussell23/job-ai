@@ -2,7 +2,7 @@ import { runTask } from "@/features/ai/run-task";
 import { draftCoverLetter } from "@/features/ai/tasks/draft-cover-letter";
 import { tailorResume } from "@/features/ai/tasks/tailor-resume";
 import { jobForPrompt, jobsWithPostings } from "@/features/jobs/jobs";
-import { memberHeader } from "@/features/members/members";
+import { documentHeader } from "@/features/profile/contact";
 import { listItems } from "@/features/profile/profile";
 import { recordedNos } from "@/features/profile/questions";
 import { log } from "@/lib/log";
@@ -27,12 +27,11 @@ export async function generateDocument(
     await failDocument(userId, documentId, "That job is no longer available.");
     return;
   }
-  const [items, member, notes] = await Promise.all([
+  const [items, header, notes] = await Promise.all([
     listItems(userId),
-    memberHeader(userId),
+    documentHeader(userId),
     recordedNos(userId),
   ]);
-  const header = { name: member.name, contact: member.email };
   const profile = itemsForPrompt(usableItems(items, kind));
   if (profile === "") {
     await failDocument(userId, documentId, "Your profile is empty. Add some items first.");

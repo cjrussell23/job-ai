@@ -1,5 +1,6 @@
 import type { CoverLetterOutput } from "@/features/ai/tasks/draft-cover-letter";
 import type { TailoredResumeOutput } from "@/features/ai/tasks/tailor-resume";
+import type { DocumentHeader } from "@/features/profile/contact";
 import type { ProfileItem } from "@/features/profile/profile";
 import { type CoverLetterBody, type Line, newId, type ResumeBody } from "./body";
 
@@ -75,7 +76,7 @@ const entryTypes = new Set(["role", "project", "certification"]);
 export function assembleResume(
   output: TailoredResumeOutput,
   items: ProfileItem[],
-  header: { name: string; contact: string },
+  header: DocumentHeader,
 ): { body: ResumeBody; report: AssembleReport } {
   const usable = usableItems(items, "resume");
   const report: AssembleReport = { kept: 0, dropped: 0 };
@@ -113,6 +114,7 @@ export function assembleResume(
       kind: "resume",
       name: header.name,
       contact: header.contact,
+      links: header.links,
       summary: lines(output.summary),
       sections,
       skills: lines(output.skills),
@@ -124,7 +126,7 @@ export function assembleResume(
 export function assembleCoverLetter(
   output: CoverLetterOutput,
   items: ProfileItem[],
-  header: { name: string; contact: string },
+  header: DocumentHeader,
 ): { body: CoverLetterBody; report: AssembleReport } {
   const usable = usableItems(items, "cover_letter");
   const report: AssembleReport = { kept: 0, dropped: 0 };
@@ -137,6 +139,7 @@ export function assembleCoverLetter(
       kind: "cover_letter",
       name: header.name,
       contact: header.contact,
+      links: header.links,
       greeting: output.greeting,
       paragraphs,
       closing: output.closing,
