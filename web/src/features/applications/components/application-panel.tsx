@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { removeApplicationAction, trackJobAction } from "@/features/applications/actions";
 import { applicationForJob, eventsFor, statusLabels } from "@/features/applications/applications";
 import { approvedDocumentsForJob } from "@/features/documents/documents";
+import { listStandingResumes } from "@/features/documents/standing";
 import { appTimeZone } from "@/features/runs/time";
 import { ApplicationForm } from "./application-form";
 import { StatusSelect } from "./status-select";
@@ -37,13 +38,14 @@ export async function ApplicationPanel({ userId, jobId }: { userId: string; jobI
       </Card>
     );
   }
-  const [approved, events] = await Promise.all([
+  const [approved, events, standing] = await Promise.all([
     approvedDocumentsForJob(userId, jobId),
     eventsFor(userId, [application.id]),
+    listStandingResumes(userId),
   ]);
   const option = (d: { id: string; version: number }) => ({
     id: d.id,
-    label: `Version ${d.version}`,
+    label: `Tailored, version ${d.version}`,
   });
   const history = events.get(application.id) ?? [];
   return (
@@ -67,7 +69,10 @@ export async function ApplicationPanel({ userId, jobId }: { userId: string; jobI
           resumeId={application.resumeId}
           coverLetterId={application.coverLetterId}
           notes={application.notes}
-          resumes={approved.filter((d) => d.kind === "resume").map(option)}
+          resumes={[
+            ...approved.filter((d) => d.kind === "resume").map(option),
+            ...standing.map((d) => ({ id: d.id, label: `Standing: ${d.name}` })),
+          ]}
           coverLetters={approved.filter((d) => d.kind === "cover_letter").map(option)}
         />
         <form action={removeApplicationAction}>

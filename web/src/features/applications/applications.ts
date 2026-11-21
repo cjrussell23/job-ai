@@ -132,7 +132,7 @@ export async function setStatus(userId: string, id: string, status: Status): Pro
   return { ok: true };
 }
 
-/** Attaches a document to an application. Only the member's own approved documents for this job (rule 6). */
+/** Attaches a document to an application: the member's own approved document for this job, or a standing resume (rule 6). */
 export async function attachDocument(
   userId: string,
   id: string,
@@ -144,7 +144,8 @@ export async function attachDocument(
   if (documentId) {
     const doc = await getDocument(userId, documentId);
     if (!doc) return { ok: false, reason: "not_found" };
-    if (doc.kind !== kind || doc.jobId !== application.jobId)
+    // A standing resume suits any job; a tailored document only its own.
+    if (doc.kind !== kind || (!doc.standing && doc.jobId !== application.jobId))
       return { ok: false, reason: "wrong_kind" };
     if (doc.state !== "approved") return { ok: false, reason: "not_approved" };
   }

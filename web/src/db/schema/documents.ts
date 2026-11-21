@@ -1,4 +1,14 @@
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { jobs } from "./jobs";
 
@@ -24,6 +34,8 @@ export const documents = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     jobId: uuid("job_id").references(() => jobs.id, { onDelete: "set null" }),
     kind: documentKind("kind").notNull(),
+    /** Built by the member in the resume builder; counts as approved. Tailored documents are not. */
+    standing: boolean("standing").notNull().default(false),
     /** A member's own name for a standing resume; empty for tailored documents. */
     name: text("name").notNull().default(""),
     template: text("template").notNull().default("clean"),

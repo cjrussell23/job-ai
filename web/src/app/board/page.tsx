@@ -27,7 +27,7 @@ function DocumentLink({ doc, label }: { doc: Document | undefined; label: string
   if (!doc) return <span className="text-muted-foreground">No {label.toLowerCase()}</span>;
   return (
     <a href={`/documents/${doc.id}/pdf`} target="_blank" rel="noreferrer" className="underline">
-      {label} v{doc.version}
+      {doc.standing ? `${label}: ${doc.name}` : `${label} v${doc.version}`}
       {/* Editing an approved document returns it to draft; flag that the sent version changed. */}
       {doc.state !== "approved" && " (edited since approval)"}
     </a>
