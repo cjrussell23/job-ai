@@ -14,6 +14,7 @@ import {
   openJobsForMatching,
   savePayEstimate,
 } from "@/features/jobs/jobs";
+import { allMemberPay, withMemberPay } from "@/features/jobs/member-pay";
 import { profileForScoring } from "@/features/profile/for-scoring";
 import { titleMatches } from "@/features/sources/match";
 import { activeTargets, targetForPrompt } from "@/features/targets/for-scoring";
@@ -62,12 +63,17 @@ export async function createMatches(): Promise<{ created: number; hidden: number
     db().select({ jobId: jobMatches.jobId, targetId: jobMatches.targetId }).from(jobMatches),
   ]);
   const known = new Set(existing.map((m) => `${m.jobId}|${m.targetId}`));
+  const memberPay = await allMemberPay(jobs.map((j) => j.id));
   let created = 0;
   let hidden = 0;
   for (const target of targets) {
     for (const job of jobs) {
       if (known.has(`${job.id}|${target.id}`) || !jobFitsTarget(job, target)) continue;
-      const limits = checkFirmLimits(job, target);
+      // A member's own recorded pay counts as known pay for their limits (ADR 0003).
+      const limits = checkFirmLimits(
+        withMemberPay(job, memberPay.get(`${target.userId}|${job.id}`)),
+        target,
+      );
       await db()
         .insert(jobMatches)
         .values({
@@ -110,6 +116,7 @@ export async function scoreUnscoredMatches(
     (await jobsWithPostings([...new Set(pending.map((m) => m.jobId))])).map((j) => [j.id, j]),
   );
   const targets = new Map((await activeTargets()).map((t) => [t.id, t]));
+  const memberPay = await allMemberPay([...jobs.keys()]);
   const profiles = new Map<string, string>();
   const tastes = new Map<string, { preferences: string[]; ratings: string[] }>();
   const tasteFor = async (userId: string) => {
@@ -127,7 +134,7 @@ export async function scoreUnscoredMatches(
     const job = jobs.get(match.jobId);
     const target = targets.get(match.targetId);
     if (!job || job.state !== "open" || !target) continue;
-    const jobText = jobForPrompt(job);
+    const jobText = jobForPrompt(withMemberPay(job, memberPay.get(`${match.userId}|${job.id}`)));
     const update: Partial<typeof jobMatches.$inferInsert> = {};
 
     if (!match.targetScoredAt) {

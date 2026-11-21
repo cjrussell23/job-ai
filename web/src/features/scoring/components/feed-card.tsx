@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trackJobAction } from "@/features/applications/actions";
 import { GradeButtons } from "@/features/feedback/components/grade-buttons";
-import type { Job } from "@/features/jobs/jobs";
+import { Pay } from "@/features/jobs/components/pay";
 import { appTimeZone } from "@/features/runs/time";
 import { dismissJobAction, splitPostingAction } from "@/features/scoring/actions";
 import type { FeedItem } from "@/features/scoring/feed";
@@ -12,38 +12,6 @@ import { sourceLabel } from "@/features/sources/catalogue";
 
 const day = (date: Date) =>
   date.toLocaleDateString("en-CA", { timeZone: appTimeZone, month: "short", day: "numeric" });
-
-const money = (n: number) =>
-  n.toLocaleString("en-CA", {
-    style: "currency",
-    currency: "CAD",
-    maximumFractionDigits: n < 1000 ? 2 : 0,
-  });
-
-function range(min: number | null, max: number | null) {
-  if (min === null && max === null) return "";
-  if (min === null || max === null || min === max) return money(min ?? max ?? 0);
-  return `${money(min)}–${money(max)}`;
-}
-
-/** Stated pay, or "not listed" with a clearly labelled estimate (ADR 0002). */
-function Pay({ job }: { job: Job }) {
-  if (job.payPeriod) {
-    return <span>{`${range(job.payMin, job.payMax)} per ${job.payPeriod}`}</span>;
-  }
-  if (job.payEstimatePeriod && job.payEstimateCertainty) {
-    return (
-      <span title={job.payEstimateReason ?? undefined}>
-        Pay not listed ·{" "}
-        <span className="italic">
-          estimate {range(job.payEstimateMin, job.payEstimateMax)} per {job.payEstimatePeriod}
-        </span>{" "}
-        <Badge variant="outline">{job.payEstimateCertainty} certainty</Badge>
-      </span>
-    );
-  }
-  return <span>Pay not listed</span>;
-}
 
 function Score({
   label,

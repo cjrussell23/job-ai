@@ -12,7 +12,10 @@ import { approveAction, draftAction } from "@/features/documents/actions";
 import { documentBodySchema } from "@/features/documents/body";
 import { DocumentEditor } from "@/features/documents/components/document-editor";
 import { type Document, documentsForJob } from "@/features/documents/documents";
-import { jobsWithPostings, payText } from "@/features/jobs/jobs";
+import { Pay } from "@/features/jobs/components/pay";
+import { PayPanel } from "@/features/jobs/components/pay-panel";
+import { jobsWithPostings } from "@/features/jobs/jobs";
+import { memberPayFor, withMemberPay } from "@/features/jobs/member-pay";
 import { requireMember } from "@/features/members/session";
 import { ReviewPanel } from "@/features/profile/components/review-panel";
 import { sourceLabel } from "@/features/sources/catalogue";
@@ -111,8 +114,10 @@ function DocumentCard({ doc, jobId }: { doc: Document; jobId: string }) {
 async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }) {
   const { userId, name, member } = await requireMember();
   const { id } = await params;
-  const [job] = await jobsWithPostings([id]);
-  if (!job) notFound();
+  const [found] = await jobsWithPostings([id]);
+  if (!found) notFound();
+  const mine = (await memberPayFor(userId, [id])).get(id);
+  const job = withMemberPay(found, mine);
   const docs = await documentsForJob(userId, id);
   const byKind = (kind: Document["kind"]) => docs.find((d) => d.kind === kind);
   const writing = docs.some((d) => d.state === "generating");
@@ -126,11 +131,14 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
           <h1 className="text-2xl font-semibold tracking-tight">{job.title}</h1>
           <p className="text-muted-foreground">
             {job.company}
-            {job.location && ` · ${job.location}`} ·{" "}
-            {payText(job)
-              .replace(/^unknown \(estimated/, "Pay not listed (estimate")
-              .replace(/^unknown$/, "Pay not listed")}
+            {job.location && ` · ${job.location}`} · <Pay job={job} />
           </p>
+          <PayPanel
+            jobId={job.id}
+            hasEstimate={found.payEstimatePeriod !== null}
+            memberPay={mine?.source ?? null}
+            stated={found.payPeriod !== null}
+          />
           <ul className="flex flex-wrap gap-3 text-sm">
             {job.postings.map((p) => (
               <li key={p.id}>

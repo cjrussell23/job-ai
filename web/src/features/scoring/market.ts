@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { jobMatches } from "@/db/schema";
 import { type JobWithPostings, jobsWithPostings } from "@/features/jobs/jobs";
+import { memberPayFor, withMemberPay } from "@/features/jobs/member-pay";
 import type { JobTarget } from "@/features/targets/targets";
 import { checkFirmLimits, type JobFacts, type TargetLimits } from "./firm-limits";
 
@@ -60,10 +61,10 @@ export async function marketForTargets(
     .select({ jobId: jobMatches.jobId, targetId: jobMatches.targetId })
     .from(jobMatches)
     .where(eq(jobMatches.userId, userId));
+  const jobIds = [...new Set(matches.map((m) => m.jobId))];
+  const [found, pay] = await Promise.all([jobsWithPostings(jobIds), memberPayFor(userId, jobIds)]);
   const jobs = new Map(
-    (await jobsWithPostings([...new Set(matches.map((m) => m.jobId))]))
-      .filter((j) => j.state === "open")
-      .map((j) => [j.id, j]),
+    found.filter((j) => j.state === "open").map((j) => [j.id, withMemberPay(j, pay.get(j.id))]),
   );
   const views = new Map<string, MarketView>();
   for (const target of targets) {

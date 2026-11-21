@@ -3,11 +3,12 @@ import { db } from "@/db/client";
 import { type JobMatch, jobMatches } from "@/db/schema";
 import { jobIdsWithApplications } from "@/features/applications/applications";
 import { type JobWithPostings, jobsWithPostings } from "@/features/jobs/jobs";
+import { memberPayFor, withMemberPay } from "@/features/jobs/member-pay";
 import { listTargets } from "@/features/targets/targets";
 import { combinedScore } from "./firm-limits";
 
 export type FeedItem = {
-  job: JobWithPostings;
+  job: JobWithPostings & { memberPay?: "entered" | "confirmed_estimate" };
   /** The match with the highest combined score; its target is shown first. */
   best: JobMatch & { targetName: string; combined: number | null };
   /** Other targets this job also matched. */
@@ -31,11 +32,14 @@ export async function feedForUser(userId: string, targetFitWeight: number): Prom
       ),
     );
   if (matches.length === 0) return [];
-  const [jobs, targets, tracked] = await Promise.all([
-    jobsWithPostings([...new Set(matches.map((m) => m.jobId))]),
+  const jobIds = [...new Set(matches.map((m) => m.jobId))];
+  const [found, targets, tracked, pay] = await Promise.all([
+    jobsWithPostings(jobIds),
     listTargets(userId),
     jobIdsWithApplications(userId),
+    memberPayFor(userId, jobIds),
   ]);
+  const jobs = found.map((j) => withMemberPay(j, pay.get(j.id)));
   const targetName = new Map(targets.map((t) => [t.id, t.roleType]));
   const openJobs = new Map(jobs.filter((j) => j.state === "open").map((j) => [j.id, j]));
 

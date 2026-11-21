@@ -78,9 +78,14 @@ function range(min: number | null, max: number | null): string {
   return `${money(min)}–${money(max)}`;
 }
 
-/** How a job's pay reads: stated, an estimate (always labelled), or unknown. */
-export function payText(job: Job): string {
-  if (job.payPeriod) return `${range(job.payMin, job.payMax)} per ${job.payPeriod}`;
+const memberPayLabels = { entered: "you entered", confirmed_estimate: "estimate you confirmed" };
+
+/** How a job's pay reads: the member's own, stated, an estimate (always labelled), or unknown. */
+export function payText(job: Job & { memberPay?: "entered" | "confirmed_estimate" }): string {
+  if (job.payPeriod) {
+    const label = job.memberPay ? ` (${memberPayLabels[job.memberPay]})` : "";
+    return `${range(job.payMin, job.payMax)} per ${job.payPeriod}${label}`;
+  }
   if (job.payEstimatePeriod && job.payEstimateCertainty) {
     return `unknown (estimated ${range(job.payEstimateMin, job.payEstimateMax)} per ${job.payEstimatePeriod}, ${job.payEstimateCertainty} certainty)`;
   }
@@ -88,7 +93,10 @@ export function payText(job: Job): string {
 }
 
 /** A job as a model reads it. Descriptions are cut to keep prompts small. */
-export function jobForPrompt(job: Job, maxDescription = 6000): string {
+export function jobForPrompt(
+  job: Job & { memberPay?: "entered" | "confirmed_estimate" },
+  maxDescription = 6000,
+): string {
   const lines = [
     `Title: ${job.title}`,
     `Company: ${job.company}`,
