@@ -111,6 +111,14 @@ const irregularPast = new Set(
   ),
 );
 
+const presentVerbs = new Set(
+  "lead build manage develop design create oversee collaborate maintain run write own drive support implement deliver architect automate integrate improve coordinate mentor review deploy monitor secure partner plan launch migrate".split(
+    " ",
+  ),
+);
+
+export const isPresentTense = (word: string) => presentVerbs.has(word);
+
 export const isPastTense = (word: string) =>
   irregularPast.has(word) ||
   (word.endsWith("ed") && !["need", "feed", "seed", "speed", "lead"].includes(word));
@@ -162,7 +170,8 @@ export function entryStrength(bullets: string[]): Advice[] {
     });
   }
   const past = openers.filter(isPastTense).length;
-  const present = openers.length - past;
+  // Only words that are clearly present-tense verbs count; "Primary developer…" is not a tense.
+  const present = openers.filter(isPresentTense).length;
   if (openers.length >= 3 && past >= 1 && present >= 1) {
     advice.push({
       status: "warn",
