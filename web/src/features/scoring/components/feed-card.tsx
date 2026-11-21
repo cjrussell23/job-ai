@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { trackJobAction } from "@/features/applications/actions";
 import { GradeButtons } from "@/features/feedback/components/grade-buttons";
 import type { Job } from "@/features/jobs/jobs";
 import { appTimeZone } from "@/features/runs/time";
@@ -168,6 +169,14 @@ export function FeedCard({ item, grade }: CardProps) {
             grade={grade?.kind ?? null}
             reason={grade?.reason ?? null}
           />
+          <form action={trackJobAction}>
+            <input type="hidden" name="jobId" value={job.id} />
+            <input type="hidden" name="targetId" value={best.targetId} />
+            <input type="hidden" name="status" value="saved" />
+            <Button type="submit" variant="outline" size="sm">
+              Save
+            </Button>
+          </form>
           <form action={dismissJobAction}>
             <input type="hidden" name="jobId" value={job.id} />
             <input type="hidden" name="targetId" value={best.targetId} />

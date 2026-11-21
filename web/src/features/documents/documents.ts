@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { type Document, documents } from "@/db/schema";
 import { allLines, type DocumentBody, documentBodySchema, type Line, newId } from "./body";
@@ -24,6 +24,19 @@ export async function getDocument(
     .from(documents)
     .where(and(eq(documents.id, documentId), eq(documents.userId, userId)));
   return doc;
+}
+
+/** The member's documents among the given ids, for showing what each application used. */
+export async function documentsByIds(
+  userId: string,
+  ids: string[],
+): Promise<Map<string, Document>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db()
+    .select()
+    .from(documents)
+    .where(and(eq(documents.userId, userId), inArray(documents.id, ids)));
+  return new Map(rows.map((d) => [d.id, d]));
 }
 
 /** Approved documents for a job, which are the only ones an application may use (rule 6). */

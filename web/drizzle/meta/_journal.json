@@ -99,6 +99,13 @@
       "when": 1795254412404,
       "tag": "0013_documents",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795255060368,
+      "tag": "0014_applications",
+      "breakpoints": true
     }
   ]
 }

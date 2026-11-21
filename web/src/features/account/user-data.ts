@@ -1,7 +1,9 @@
-import { count, eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   aiUsage,
+  applicationEvents,
+  applications,
   documents,
   feedback,
   jobMatches,
@@ -30,6 +32,7 @@ export const userOwnedTables = {
   feedback: "exported",
   learned_preferences: "exported",
   documents: "exported",
+  applications: "exported",
   rescore_requests: "excluded: a log of rescore button use, kept for the daily limit",
   // A log of shared-job edits; the split itself stays, the log row goes with the member.
   job_splits: "excluded: log of edits to shared jobs",
@@ -55,16 +58,29 @@ export async function exportUserData(userId: string) {
     })
     .from(members)
     .where(eq(members.userId, userId));
-  const [items, uploads, targets, usage, matches, grades, preferences, docs] = await Promise.all([
-    db().select().from(profileItems).where(eq(profileItems.userId, userId)),
-    db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
-    db().select().from(jobTargets).where(eq(jobTargets.userId, userId)),
-    db().select().from(aiUsage).where(eq(aiUsage.userId, userId)),
-    db().select().from(jobMatches).where(eq(jobMatches.userId, userId)),
-    db().select().from(feedback).where(eq(feedback.userId, userId)),
-    db().select().from(learnedPreferences).where(eq(learnedPreferences.userId, userId)),
-    db().select().from(documents).where(eq(documents.userId, userId)),
-  ]);
+  const [items, uploads, targets, usage, matches, grades, preferences, docs, apps] =
+    await Promise.all([
+      db().select().from(profileItems).where(eq(profileItems.userId, userId)),
+      db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
+      db().select().from(jobTargets).where(eq(jobTargets.userId, userId)),
+      db().select().from(aiUsage).where(eq(aiUsage.userId, userId)),
+      db().select().from(jobMatches).where(eq(jobMatches.userId, userId)),
+      db().select().from(feedback).where(eq(feedback.userId, userId)),
+      db().select().from(learnedPreferences).where(eq(learnedPreferences.userId, userId)),
+      db().select().from(documents).where(eq(documents.userId, userId)),
+      db().select().from(applications).where(eq(applications.userId, userId)),
+    ]);
+  const history = apps.length
+    ? await db()
+        .select()
+        .from(applicationEvents)
+        .where(
+          inArray(
+            applicationEvents.applicationId,
+            apps.map((a) => a.id),
+          ),
+        )
+    : [];
   const strip = <T extends { userId: string | null }>(rows: T[]) =>
     rows.map(({ userId: _, ...rest }) => rest);
   return {
@@ -78,6 +94,10 @@ export async function exportUserData(userId: string) {
     feedback: strip(grades),
     learnedPreferences: strip(preferences),
     documents: strip(docs),
+    applications: strip(apps).map((a) => ({
+      ...a,
+      history: history.filter((h) => h.applicationId === a.id),
+    })),
   };
 }
 

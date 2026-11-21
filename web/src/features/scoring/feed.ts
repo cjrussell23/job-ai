@@ -1,6 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { type JobMatch, jobMatches } from "@/db/schema";
+import { jobIdsWithApplications } from "@/features/applications/applications";
 import { type JobWithPostings, jobsWithPostings } from "@/features/jobs/jobs";
 import { listTargets } from "@/features/targets/targets";
 import { combinedScore } from "./firm-limits";
@@ -16,7 +17,7 @@ export type FeedItem = {
 
 /**
  * A member's feed: open jobs that passed a target's firm limits and were not
- * dismissed, best match first. Everything here is filtered by the member's id.
+ * dismissed or already tracked, best match first. Everything here is filtered by the member's id.
  */
 export async function feedForUser(userId: string, targetFitWeight: number): Promise<FeedItem[]> {
   const matches = await db()
@@ -30,16 +31,19 @@ export async function feedForUser(userId: string, targetFitWeight: number): Prom
       ),
     );
   if (matches.length === 0) return [];
-  const [jobs, targets] = await Promise.all([
+  const [jobs, targets, tracked] = await Promise.all([
     jobsWithPostings([...new Set(matches.map((m) => m.jobId))]),
     listTargets(userId),
+    jobIdsWithApplications(userId),
   ]);
   const targetName = new Map(targets.map((t) => [t.id, t.roleType]));
   const openJobs = new Map(jobs.filter((j) => j.state === "open").map((j) => [j.id, j]));
 
   const byJob = new Map<string, (JobMatch & { targetName: string; combined: number | null })[]>();
   for (const match of matches) {
-    if (!openJobs.has(match.jobId) || !targetName.has(match.targetId)) continue;
+    // A saved or applied job lives on the board, not the feed (rule 11).
+    if (!openJobs.has(match.jobId) || !targetName.has(match.targetId) || tracked.has(match.jobId))
+      continue;
     const entry = {
       ...match,
       targetName: targetName.get(match.targetId) ?? "",
@@ -76,4 +80,34 @@ export async function dismissJob(userId: string, jobId: string): Promise<void> {
     .update(jobMatches)
     .set({ dismissed: true })
     .where(and(eq(jobMatches.userId, userId), eq(jobMatches.jobId, jobId)));
+}
+
+export type BestMatch = JobMatch & { targetName: string; combined: number | null };
+
+/** The best match per job for jobs the member is tracking, whether or not they're still in the feed. */
+export async function bestMatchesForJobs(
+  userId: string,
+  jobIds: string[],
+  targetFitWeight: number,
+): Promise<Map<string, BestMatch>> {
+  if (jobIds.length === 0) return new Map();
+  const [matches, targets] = await Promise.all([
+    db()
+      .select()
+      .from(jobMatches)
+      .where(and(eq(jobMatches.userId, userId), inArray(jobMatches.jobId, jobIds))),
+    listTargets(userId),
+  ]);
+  const targetName = new Map(targets.map((t) => [t.id, t.roleType]));
+  const best = new Map<string, BestMatch>();
+  for (const match of matches) {
+    const entry = {
+      ...match,
+      targetName: targetName.get(match.targetId) ?? "Removed target",
+      combined: combinedScore(match.targetFit, match.profileFit, targetFitWeight),
+    };
+    const current = best.get(match.jobId);
+    if (!current || (entry.combined ?? -1) > (current.combined ?? -1)) best.set(match.jobId, entry);
+  }
+  return best;
 }

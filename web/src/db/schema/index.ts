@@ -1,5 +1,6 @@
 export * from "./ai-usage";
 export * from "./app-settings";
+export * from "./applications";
 export * from "./auth";
 export * from "./backups";
 export * from "./documents";

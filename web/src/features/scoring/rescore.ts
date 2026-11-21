@@ -2,6 +2,7 @@ import { and, count, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { jobMatches, rescoreRequests } from "@/db/schema";
 import { getSettings } from "@/features/admin/settings";
+import { jobIdsWithApplications } from "@/features/applications/applications";
 import { jobsWithPostings, openJobIds } from "@/features/jobs/jobs";
 import { getMemberByUserId } from "@/features/members/members";
 import { localDate } from "@/features/runs/time";
@@ -31,10 +32,14 @@ async function staleMatches(userId: string): Promise<StaleMatch[]> {
         eq(jobMatches.dismissed, false),
       ),
     );
-  const open = await openJobIds([...new Set(matches.map((m) => m.jobId))]);
+  const [open, tracked] = await Promise.all([
+    openJobIds([...new Set(matches.map((m) => m.jobId))]),
+    jobIdsWithApplications(userId),
+  ]);
   const profileChangedAt = member?.profileChangedAt ?? null;
   return matches.flatMap((match) => {
-    if (!open.has(match.jobId)) return [];
+    // A live match: job open, not dismissed, and no application yet.
+    if (!open.has(match.jobId) || tracked.has(match.jobId)) return [];
     // Learned preferences feed target fit, so a change to them makes it stale too.
     const targetChangedAt = targetChanged.get(match.targetId) ?? null;
     const preferencesChangedAt = member?.preferencesChangedAt ?? null;
