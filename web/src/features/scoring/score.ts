@@ -5,6 +5,7 @@ import { runTask } from "@/features/ai/run-task";
 import { estimatePay } from "@/features/ai/tasks/estimate-pay";
 import { scoreProfileFit } from "@/features/ai/tasks/score-profile-fit";
 import { scoreTargetFit } from "@/features/ai/tasks/score-target-fit";
+import { memberTaste } from "@/features/feedback/taste";
 import {
   type Job,
   jobForPrompt,
@@ -110,6 +111,15 @@ export async function scoreUnscoredMatches(
   );
   const targets = new Map((await activeTargets()).map((t) => [t.id, t]));
   const profiles = new Map<string, string>();
+  const tastes = new Map<string, { preferences: string[]; ratings: string[] }>();
+  const tasteFor = async (userId: string) => {
+    let taste = tastes.get(userId);
+    if (!taste) {
+      taste = await memberTaste(userId);
+      tastes.set(userId, taste);
+    }
+    return taste;
+  };
   let scored = 0;
   let failed = 0;
 
@@ -122,7 +132,13 @@ export async function scoreUnscoredMatches(
 
     if (!match.targetScoredAt) {
       const result = await runTask(match.userId, scoreTargetFit, {
-        target: targetForPrompt(target),
+        target: await (async () => {
+          const taste = await tasteFor(match.userId);
+          const text = targetForPrompt(target, taste.preferences);
+          return taste.ratings.length > 0
+            ? `${text}\nJobs they rated recently:\n${taste.ratings.join("\n")}`
+            : text;
+        })(),
         job: jobText,
       });
       if (result.ok) {

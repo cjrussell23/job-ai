@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { recordFeedback } from "@/features/feedback/feedback";
 import { splitPosting } from "@/features/jobs/splits";
 import { requireMember } from "@/features/members/session";
 import { queue, queues } from "@/lib/queue";
@@ -10,7 +11,14 @@ import { requestRescore } from "./rescore";
 
 export async function dismissJobAction(form: FormData): Promise<void> {
   const { userId } = await requireMember();
-  await dismissJob(userId, z.uuid().parse(form.get("jobId")));
+  const jobId = z.uuid().parse(form.get("jobId"));
+  const targetId = z
+    .uuid()
+    .nullable()
+    .parse(form.get("targetId") || null);
+  await dismissJob(userId, jobId);
+  // Dismissing is also a signal about fit.
+  await recordFeedback(userId, { jobId, targetId, kind: "dismissed" });
   revalidatePath("/");
 }
 

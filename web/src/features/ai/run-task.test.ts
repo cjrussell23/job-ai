@@ -57,6 +57,7 @@ test("uses the model chosen in the admin settings", async () => {
     scoreTargetFit: "anthropic/claude-haiku-5.5",
     scoreProfileFit: "anthropic/claude-haiku-5.5",
     estimatePay: "anthropic/claude-haiku-5.5",
+    learnPreferences: "anthropic/claude-haiku-5.5",
     draftCoverLetter: "anthropic/claude-sonnet-5.5",
     tailorResume: "anthropic/claude-sonnet-5.5",
   });
@@ -127,6 +128,7 @@ test("a model missing from the gateway price list is costed at the high fallback
     scoreTargetFit: "anthropic/claude-haiku-5.5",
     scoreProfileFit: "anthropic/claude-haiku-5.5",
     estimatePay: "anthropic/claude-haiku-5.5",
+    learnPreferences: "anthropic/claude-haiku-5.5",
     draftCoverLetter: "anthropic/claude-sonnet-5.5",
     tailorResume: "anthropic/claude-sonnet-5.5",
   });

@@ -2,6 +2,7 @@ export * from "./ai-usage";
 export * from "./app-settings";
 export * from "./auth";
 export * from "./backups";
+export * from "./feedback";
 export * from "./jobs";
 export * from "./matches";
 export * from "./members";
