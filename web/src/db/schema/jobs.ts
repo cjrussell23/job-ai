@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
@@ -104,3 +105,25 @@ export const scrapeRuns = pgTable(
 );
 
 export type ScrapeRun = typeof scrapeRuns.$inferSelect;
+
+export const boardSystem = pgEnum("board_system", ["greenhouse", "lever", "ashby"]);
+export const watchedCompanyOrigin = pgEnum("watched_company_origin", ["member", "discovered"]);
+
+/** A company whose public job board feed is read every run. Shared by all users. */
+export const watchedCompanies = pgTable(
+  "watched_companies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    system: boardSystem("system").notNull(),
+    /** The company's id on that system, e.g. the "acme" in boards.greenhouse.io/acme. */
+    boardId: text("board_id").notNull(),
+    origin: watchedCompanyOrigin("origin").notNull(),
+    // Not "user_id": the company stays watched after the member who added it leaves.
+    addedByUserId: text("added_by_user_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("watched_companies_board_idx").on(table.system, table.boardId)],
+);
+
+export type WatchedCompany = typeof watchedCompanies.$inferSelect;

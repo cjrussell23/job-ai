@@ -50,6 +50,13 @@
       "when": 1795248510488,
       "tag": "0006_jobs-and-postings",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795248999794,
+      "tag": "0007_watched-companies",
+      "breakpoints": true
     }
   ]
 }
