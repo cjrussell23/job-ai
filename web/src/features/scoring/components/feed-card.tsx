@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { trackJobAction } from "@/features/applications/actions";
 import { GradeButtons } from "@/features/feedback/components/grade-buttons";
+import { JobDates } from "@/features/jobs/components/job-dates";
 import { Pay } from "@/features/jobs/components/pay";
 import { appTimeZone } from "@/features/runs/time";
 import { dismissJobAction, splitPostingAction } from "@/features/scoring/actions";
@@ -57,6 +58,7 @@ export function FeedCard({ item, grade }: CardProps) {
           <p className="text-sm">
             <Pay job={job} />
           </p>
+          <JobDates job={job} />
         </div>
         <div className="flex flex-col items-end gap-1">
           <span className="text-2xl font-semibold tabular-nums">{best.combined ?? "…"}</span>

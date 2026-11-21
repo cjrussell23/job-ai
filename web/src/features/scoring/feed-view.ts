@@ -1,16 +1,19 @@
 import { z } from "zod";
+import { postedAt } from "@/features/jobs/jobs";
 import { toAnnual } from "@/features/targets/pay";
 import type { FeedItem } from "./feed";
 
 /** How the member wants the feed filtered and sorted, read from the page's URL. */
 export const feedViewSchema = z.object({
-  sort: z.enum(["best", "newest", "target", "profile", "pay"]).catch("best"),
+  sort: z.enum(["best", "newest", "posted", "target", "profile", "pay"]).catch("best"),
   target: z.string().catch(""),
   minScore: z.coerce.number().int().min(0).max(100).catch(0),
   workplace: z.enum(["", "remote", "hybrid", "onsite"]).catch(""),
   pay: z.enum(["", "stated", "any"]).catch(""),
   source: z.string().catch(""),
   age: z.enum(["", "1", "3", "7", "30"]).catch(""),
+  /** Posted within this many days; jobs whose postings give no date are left out. */
+  posted: z.enum(["", "1", "3", "7", "14", "30"]).catch(""),
   q: z.string().trim().max(100).catch(""),
 });
 export type FeedView = z.infer<typeof feedViewSchema>;
@@ -47,6 +50,7 @@ export function applyFeedView(
 ): FeedItem[] {
   const query = view.q.toLowerCase();
   const maxAgeMs = view.age ? Number(view.age) * 86_400_000 : null;
+  const maxPostedMs = view.posted ? Number(view.posted) * 86_400_000 : null;
   const filtered = items.filter((item) => {
     const { job, best } = item;
     if (
@@ -62,6 +66,10 @@ export function applyFeedView(
     if (view.pay === "any" && !job.payPeriod && !job.payEstimatePeriod) return false;
     if (view.source && !job.postings.some((p) => p.source === view.source)) return false;
     if (maxAgeMs !== null && now.getTime() - job.firstSeenAt.getTime() > maxAgeMs) return false;
+    if (maxPostedMs !== null) {
+      const posted = postedAt(job);
+      if (!posted || now.getTime() - posted.getTime() > maxPostedMs) return false;
+    }
     if (query && !`${job.title} ${job.company} ${job.location}`.toLowerCase().includes(query)) {
       return false;
     }
@@ -72,6 +80,10 @@ export function applyFeedView(
   const sorters: Record<FeedView["sort"], (a: FeedItem, b: FeedItem) => number> = {
     best: (a, b) => descending(a.best.combined, b.best.combined) || newest(a, b),
     newest,
+    // Jobs with no posted date sort after those with one, newest found first.
+    posted: (a, b) =>
+      descending(postedAt(a.job)?.getTime() ?? null, postedAt(b.job)?.getTime() ?? null) ||
+      newest(a, b),
     target: (a, b) => descending(a.best.targetFit, b.best.targetFit) || newest(a, b),
     profile: (a, b) => descending(a.best.profileFit, b.best.profileFit) || newest(a, b),
     pay: (a, b) => descending(annualPay(a), annualPay(b)) || newest(a, b),

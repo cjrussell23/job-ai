@@ -91,7 +91,8 @@ export function FeedFilters({ view, targets, sources, shown, total }: Props) {
         value={view.sort}
         options={[
           { value: "best", label: "Best match" },
-          { value: "newest", label: "Newest" },
+          { value: "newest", label: "Newest found" },
+          { value: "posted", label: "Newest posted" },
           { value: "target", label: "Target fit" },
           { value: "profile", label: "Profile fit" },
           { value: "pay", label: "Pay (highest first)" },
@@ -141,6 +142,19 @@ export function FeedFilters({ view, targets, sources, shown, total }: Props) {
         label="Source"
         value={view.source}
         options={[{ value: "", label: "All sources" }, ...sources]}
+      />
+      <Select
+        name="posted"
+        label="Posted"
+        value={view.posted}
+        options={[
+          { value: "", label: "Any time" },
+          { value: "1", label: "Last day" },
+          { value: "3", label: "Last 3 days" },
+          { value: "7", label: "Last week" },
+          { value: "14", label: "Last 2 weeks" },
+          { value: "30", label: "Last month" },
+        ]}
       />
       <Select
         name="age"
