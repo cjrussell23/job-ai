@@ -209,5 +209,15 @@ describe("searched targets", () => {
       workplace: "remote_only" as const,
     };
     expect(await searchedTargets([calgary, ontario, remote])).toEqual(new Set(["a"]));
+    // Runs logged before places were canonical still count: "Calgary" is "Calgary, AB".
+    await db().insert(scrapeRuns).values({
+      runId: "r0",
+      source: "indeed",
+      query: "Analyst",
+      location: "Calgary",
+      startedAt: new Date(),
+    });
+    const analyst = { ...calgary, id: "d", searchTitles: ["Analyst"] };
+    expect(await searchedTargets([analyst])).toEqual(new Set(["d"]));
   });
 });
