@@ -78,7 +78,12 @@ export function bulletText(item: BuildableItem, layout: Layout): string {
 export function buildStandingBody(
   items: BuildableItem[],
   picked: Set<string>,
-  header: { name: string; contact: string; links: { label: string; url: string }[] },
+  header: {
+    name: string;
+    contact: string;
+    parts?: { kind: "email" | "phone" | "location"; text: string }[];
+    links: { label: string; url: string }[];
+  },
   layout: Layout = defaultLayout,
 ): ResumeBody {
   const usable = inResumeOrder(
@@ -119,6 +124,8 @@ export function buildStandingBody(
       sections.push({
         id: newId("s"),
         heading: layout.headings[key] || sectionLabels[key],
+        key,
+        ...(layout.breakBefore.includes(key) ? { breakBefore: true } : {}),
         ...(key === "experience" ? { groupable: true } : {}),
         entries,
       });
@@ -134,6 +141,7 @@ export function buildStandingBody(
     name: header.name,
     contact: header.contact,
     links: header.links,
+    ...(header.parts ? { contactParts: header.parts } : {}),
     summary: summary ? [ownWords(summary.content, [summary.id])] : [],
     sections,
     skills: skills.length
@@ -145,6 +153,7 @@ export function buildStandingBody(
         ]
       : [],
     ...(layout.headings.skills ? { skillsHeading: layout.headings.skills } : {}),
+    ...(layout.breakBefore.includes("skills") ? { skillsBreakBefore: true } : {}),
     // After the last section is the renderer's default, so it is left unset there.
     ...(skillsAt !== undefined && skillsAt < sections.length ? { skillsAt } : {}),
   });

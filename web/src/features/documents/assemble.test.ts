@@ -46,7 +46,7 @@ const items = [
   }),
   item(5, { type: "note", content: "Secret side gig", visibility: "never" }),
 ];
-const header = { name: "Jane Doe", contact: "jane@example.com", links: [] };
+const header = { name: "Jane Doe", contact: "jane@example.com", parts: [], links: [] };
 const stranger = "11111111-1111-4111-8111-111111111111";
 
 describe("usable items", () => {

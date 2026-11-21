@@ -134,6 +134,13 @@
       "when": 1795289750628,
       "tag": "0018_item_variants",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795292574108,
+      "tag": "0019_resume_feedback",
+      "breakpoints": true
     }
   ]
 }

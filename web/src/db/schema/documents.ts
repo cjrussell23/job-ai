@@ -41,6 +41,8 @@ export const documents = pgTable(
     template: text("template").notNull().default("clean"),
     /** Builder layout choices (pages, density, section order); see features/documents/layout.ts. */
     layout: jsonb("layout"),
+    /** The latest AI feedback on a standing resume; see features/documents/feedback.ts. */
+    feedback: jsonb("feedback"),
     state: documentState("state").notNull().default("generating"),
     body: jsonb("body"),
     /** Increases with every regeneration, so a member can tell drafts apart. */

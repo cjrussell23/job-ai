@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
+import { runFeedback } from "@/features/documents/feedback";
 import { generateDocument } from "@/features/documents/generate";
 import { pickForTarget } from "@/features/documents/pick";
 import { learnPreferencesForAll } from "@/features/feedback/learn";
@@ -111,6 +112,15 @@ async function main() {
       const { userId, documentId, targetId } = pickJob.parse(job.data);
       log.info({ documentId }, "picking resume items");
       await pickForTarget(userId, documentId, targetId);
+    }
+  });
+
+  const feedbackJob = z.object({ userId: z.string(), documentId: z.uuid() });
+  await boss.work(queues.reviewResume, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, documentId } = feedbackJob.parse(job.data);
+      log.info({ documentId }, "reviewing resume");
+      await runFeedback(userId, documentId);
     }
   });
 

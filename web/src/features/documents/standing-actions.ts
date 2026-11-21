@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireMember } from "@/features/members/session";
+import { startFeedback } from "./feedback";
 import { startPickForTarget } from "./pick";
 import {
   deleteStandingResume,
@@ -84,4 +85,12 @@ export async function pickForTargetAction(form: FormData): Promise<void> {
   const result = await startPickForTarget(userId, targetId.data);
   revalidatePath("/resumes");
   redirect(result.ok ? `/resumes/${result.id}` : "/resumes");
+}
+
+export async function startFeedbackAction(form: FormData): Promise<void> {
+  const { userId } = await requireMember();
+  const id = z.uuid().safeParse(form.get("id"));
+  if (!id.success) return;
+  await startFeedback(userId, id.data);
+  revalidatePath(`/resumes/${id.data}`);
 }

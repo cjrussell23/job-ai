@@ -7,11 +7,42 @@ import { Button } from "@/components/ui/button";
 import { deleteItemAction, moveItemAction } from "@/features/profile/actions";
 import { visibilityLabels } from "@/features/profile/item-fields";
 import type { ProfileItem } from "@/features/profile/profile";
+import {
+  type Advice,
+  bulletAdvice,
+  bulletStrength,
+  entryStrength,
+} from "@/features/profile/strength";
 import { ItemForm } from "./item-form";
 
-type Props = { item: ProfileItem; children?: React.ReactNode };
+type Props = {
+  item: ProfileItem;
+  /** For a role or project, its bullets' wording, to check them as a set. */
+  bulletTexts?: string[];
+  children?: React.ReactNode;
+};
 
-export function ItemCard({ item, children }: Props) {
+function AdviceNotes({ advice }: { advice: Advice[] }) {
+  if (advice.length === 0) return null;
+  return (
+    <ul className="flex flex-col pl-4">
+      {advice.map((a) => (
+        <li
+          key={a.message}
+          className={
+            a.status === "warn"
+              ? "text-xs text-amber-700 dark:text-amber-400"
+              : "text-xs text-muted-foreground"
+          }
+        >
+          {a.message}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function ItemCard({ item, bulletTexts, children }: Props) {
   const [editing, setEditing] = useState(false);
   const dates = [item.startDate, item.endDate].filter(Boolean).join(" – ");
   const isBullet = item.type === "bullet";
@@ -29,6 +60,12 @@ export function ItemCard({ item, children }: Props) {
                 {item.shortContent && (
                   <p className="pl-4 text-xs text-muted-foreground">Short: {item.shortContent}</p>
                 )}
+                <AdviceNotes
+                  advice={[
+                    ...[bulletAdvice(item.content)].filter((a): a is Advice => a !== null),
+                    ...bulletStrength(item.content),
+                  ]}
+                />
               </>
             ) : (
               <>
@@ -60,6 +97,7 @@ export function ItemCard({ item, children }: Props) {
                 {item.title && item.content && (
                   <p className="whitespace-pre-line text-sm">{item.content}</p>
                 )}
+                {bulletTexts && <AdviceNotes advice={entryStrength(bulletTexts)} />}
               </>
             )}
             {item.visibility !== "auto" && (

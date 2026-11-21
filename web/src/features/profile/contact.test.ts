@@ -14,6 +14,7 @@ describe("contact details", () => {
     expect(headerFrom(undefined, { name: "Ann", email: "a@example.com" })).toEqual({
       name: "Ann",
       contact: "a@example.com",
+      parts: [{ kind: "email", text: "a@example.com" }],
       links: [],
     });
     expect(

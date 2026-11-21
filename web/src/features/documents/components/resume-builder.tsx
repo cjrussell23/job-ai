@@ -6,11 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   type Advice,
-  bulletAdvice,
   bulletCountAdvice,
   bulletRange,
-  bulletStrength,
-  entryStrength,
   type FitCandidate,
   fitSuggestions,
   pageAdvice,
@@ -27,6 +24,7 @@ import {
   templates,
 } from "@/features/documents/layout";
 import { renderResume } from "@/features/documents/render";
+import { type ResumeScore, scoreResume } from "@/features/documents/score";
 import {
   type BuilderState,
   exactPagesAction,
@@ -41,14 +39,51 @@ import {
 } from "@/features/documents/standing-body";
 import { ResumePreview } from "./resume-preview";
 
+function ScoreCard({ score }: { score: ResumeScore }) {
+  const tone = (n: number) =>
+    n >= 80 ? "bg-emerald-500" : n >= 60 ? "bg-amber-500" : "bg-rose-500";
+  return (
+    <details className="rounded-md border p-3 text-sm" open>
+      <summary className="flex cursor-pointer items-baseline gap-2">
+        <span className="text-2xl font-semibold tabular-nums">{score.total}</span>
+        <span className="text-muted-foreground">/ 100 resume score</span>
+      </summary>
+      <ul className="mt-3 flex flex-col gap-2">
+        {score.aspects.map((a) => (
+          <li key={a.key} className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="w-28 shrink-0">{a.label}</span>
+              <span className="h-1.5 flex-1 overflow-hidden rounded bg-muted">
+                <span
+                  className={`block h-full ${tone(a.score)}`}
+                  style={{ width: `${a.score}%` }}
+                />
+              </span>
+              <span className="w-8 text-right tabular-nums">{a.score}</span>
+            </div>
+            <span className="pl-28 text-xs text-muted-foreground">{a.detail}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 type Props = {
   id: string | null;
   name: string;
   items: BuildableItem[];
   picked: string[];
   layout: Layout;
-  header: { name: string; contact: string; links: { label: string; url: string }[] };
+  header: {
+    name: string;
+    contact: string;
+    parts: { kind: "email" | "phone" | "location"; text: string }[];
+    links: { label: string; url: string }[];
+  };
   recommendedPages: number;
+  /** AI feedback on the saved version, rendered on the server. */
+  feedback?: React.ReactNode;
   yearsOfExperience: number;
 };
 
@@ -298,12 +333,6 @@ export function ResumeBuilder(props: Props) {
                 Use the short version
               </label>
             )}
-            <AdviceList
-              advice={[
-                bulletAdvice(bulletText(bullet, layout)),
-                ...bulletStrength(bulletText(bullet, layout)),
-              ]}
-            />
           </div>
         )}
       </div>
@@ -364,7 +393,6 @@ export function ResumeBuilder(props: Props) {
                     now,
                   ),
                 ),
-                ...entryStrength(picked.map((b) => bulletText(b, layout))),
               ]}
             />
           </div>
@@ -375,6 +403,36 @@ export function ResumeBuilder(props: Props) {
   };
 
   const pageCheck = pageAdvice(measure.pages, layout.pages);
+
+  const score = scoreResume({
+    pages: measure.pages,
+    targetPages: layout.pages,
+    entries: items
+      .filter((i) => (i.type === "role" || i.type === "project") && chosen.has(i.id))
+      .map((i) => ({
+        kind: i.type as "role" | "project",
+        bullets: items
+          .filter((b) => b.parentId === i.id && chosen.has(b.id))
+          .map((b) => bulletText(b, layout)),
+        range: bulletRange(
+          {
+            type: i.type as "role" | "project",
+            startDate: i.startDate,
+            endDate: i.endDate,
+            rank: roles.indexOf(i),
+          },
+          now,
+        ),
+      })),
+    contact: {
+      email: props.header.parts.some((p) => p.kind === "email"),
+      phone: props.header.parts.some((p) => p.kind === "phone"),
+      location: props.header.parts.some((p) => p.kind === "location"),
+      links: props.header.links.length,
+    },
+    hasSummary: layout.summaryId !== null,
+    skills: pickedSkills,
+  });
 
   return (
     <form action={action} className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -476,9 +534,40 @@ export function ResumeBuilder(props: Props) {
             </label>
           </div>
           <div className="flex flex-col gap-1">
+            <span className="font-medium">Header</span>
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-1.5">
+                Links show as
+                <select
+                  value={layout.headerLinks}
+                  onChange={(e) =>
+                    update({ headerLinks: e.currentTarget.value as Layout["headerLinks"] })
+                  }
+                  className="h-8 rounded-md border bg-background px-1"
+                >
+                  <option value="address">their address</option>
+                  <option value="label">a label, e.g. LinkedIn</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={layout.headerIcons}
+                  onChange={(e) => update({ headerIcons: e.currentTarget.checked })}
+                />
+                Icons for contact details and links
+              </label>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Labels stay clickable in the PDF. Applicant tracking systems read the text, so a label
+              hides the address from them; keep addresses for online applications.
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
             <span className="font-medium">Sections</span>
             <span className="text-xs text-muted-foreground">
-              Reorder them, or rename a heading for this resume.
+              Reorder them, rename a heading, or start one on a new page. Otherwise pages break
+              between bullets, never inside one or straight after a heading.
             </span>
             <ol className="flex flex-col gap-1">
               {layout.order.map((key, index) => (
@@ -494,6 +583,23 @@ export function ResumeBuilder(props: Props) {
                     }
                     className="h-8"
                   />
+                  <label
+                    className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+                    title="Start this section on a new page"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={layout.breakBefore.includes(key)}
+                      onChange={(e) =>
+                        update({
+                          breakBefore: e.currentTarget.checked
+                            ? [...layout.breakBefore, key]
+                            : layout.breakBefore.filter((k) => k !== key),
+                        })
+                      }
+                    />
+                    New page
+                  </label>
                   <MoveButtons
                     label={sectionLabels[key]}
                     first={index === 0}
@@ -613,6 +719,8 @@ export function ResumeBuilder(props: Props) {
             </Button>
           </div>
         )}
+        <ScoreCard score={score} />
+        {props.feedback}
         <ResumePreview html={html} layout={layout} onMeasure={setMeasure} />
         <p className="text-xs text-muted-foreground">
           Page breaks are estimated; use "Check exact pages" for the real PDF.

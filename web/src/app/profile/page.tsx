@@ -103,7 +103,11 @@ async function Profile() {
             <section key={type} className="flex flex-col gap-3">
               <h2 className="text-lg font-semibold">{heading}</h2>
               {sectionItems.map((item) => (
-                <ItemCard key={item.id} item={item}>
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  bulletTexts={(bulletsByParent.get(item.id) ?? []).map((b) => b.content)}
+                >
                   {(type === "role" || type === "project") && (
                     <div className="mt-3 flex flex-col gap-1 border-t pt-3">
                       {(bulletsByParent.get(item.id) ?? []).map((bullet) => (

@@ -2,12 +2,13 @@ import { afterAll, afterEach, beforeEach, describe, expect, test } from "vitest"
 import { closeDb, db } from "@/db/client";
 import { documents } from "@/db/schema";
 import { createItem, listItems } from "@/features/profile/profile";
+import { bulletStrength, entryStrength } from "@/features/profile/strength";
 import { createTarget } from "@/features/targets/targets";
 import { resetDb } from "@/test/db";
 import { fakeModel } from "@/test/fake-model";
 import { createMember } from "@/test/fixtures";
 import { resumeBodySchema } from "./body";
-import { bulletStrength, entryStrength, fitSuggestions } from "./guidance";
+import { fitSuggestions } from "./guidance";
 import { layoutSchema } from "./layout";
 import { cleanPicks, pickForTarget } from "./pick";
 import { groupEntries, renderResume, renderResumeText } from "./render";
@@ -187,5 +188,37 @@ describe("resume builder", () => {
       id: doc.id,
     });
     expect((await getStandingResume(userId, doc.id))?.state).toBe("approved");
+  });
+});
+
+describe("resume header", () => {
+  test("links print as labels or addresses, with icons on request", () => {
+    const body = resumeBodySchema.parse({
+      kind: "resume",
+      name: "Ann",
+      contact: "a@example.com · Calgary, AB",
+      contactParts: [
+        { kind: "email", text: "a@example.com" },
+        { kind: "location", text: "Calgary, AB" },
+      ],
+      links: [
+        { label: "", url: "https://www.linkedin.com/in/ann/" },
+        { label: "My blog", url: "https://blog.example.com" },
+        { label: "Bad", url: "javascript:alert(1)" },
+      ],
+      summary: [],
+      sections: [],
+      skills: [],
+    });
+    const plain = renderResume(body);
+    expect(plain).toContain(">linkedin.com/in/ann<");
+    expect(plain).not.toContain("<svg");
+    expect(plain).not.toContain("javascript:");
+    const labelled = renderResume(body, {
+      layout: layoutSchema.parse({ headerLinks: "label", headerIcons: true }),
+    });
+    expect(labelled).toContain("LinkedIn</a>");
+    expect(labelled).toContain("My blog</a>");
+    expect(labelled.match(/<svg/g)).toHaveLength(4);
   });
 });
