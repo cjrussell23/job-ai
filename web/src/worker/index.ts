@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { closeDb } from "@/db/client";
 import { parseUpload } from "@/features/profile/parse-upload";
+import { proposeTitlesForTarget } from "@/features/targets/propose-titles";
 import { log } from "@/lib/log";
 import { queue, queues, stopQueue } from "@/lib/queue";
 
@@ -19,6 +20,15 @@ async function main() {
       const { userId, uploadId } = parseResumeJob.parse(job.data);
       log.info({ jobId: job.id, uploadId }, "parsing resume");
       await parseUpload(userId, uploadId);
+    }
+  });
+
+  const proposeTitlesJob = z.object({ userId: z.string(), targetId: z.uuid() });
+  await boss.work(queues.proposeSearchTitles, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, targetId } = proposeTitlesJob.parse(job.data);
+      log.info({ jobId: job.id, targetId }, "proposing search titles");
+      await proposeTitlesForTarget(userId, targetId);
     }
   });
 
