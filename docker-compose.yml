@@ -1,5 +1,17 @@
-# Production stack for the home server. Copy .env.example to .env and fill it in first.
+# Production stack for the home server, deployed as a Portainer stack.
+# Every value comes from the stack's environment variables (set in Portainer);
+# .env.example lists them. Images are built by GitHub Actions, never here.
 name: job-ai
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://jobai:${POSTGRES_PASSWORD}@postgres:5432/jobai
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET}
+  ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL}
+  AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:?set AI_GATEWAY_API_KEY}
 
 services:
   postgres:
@@ -7,7 +19,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: jobai
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       POSTGRES_DB: jobai
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -19,13 +31,11 @@ services:
 
   web:
     image: ghcr.io/cjrussell23/job-ai-web:${IMAGE_TAG:-latest}
-    build: ./web
     # The tunnel reaches the app by this name: http://job-ai-web:3000
     container_name: job-ai-web
     restart: unless-stopped
-    env_file: .env
     environment:
-      DATABASE_URL: postgres://jobai:${POSTGRES_PASSWORD}@postgres:5432/jobai
+      <<: *app-env
       SERVICE_NAME: web
     depends_on:
       postgres:
@@ -39,9 +49,8 @@ services:
   worker:
     image: ghcr.io/cjrussell23/job-ai-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    env_file: .env
     environment:
-      DATABASE_URL: postgres://jobai:${POSTGRES_PASSWORD}@postgres:5432/jobai
+      <<: *app-env
       SERVICE_NAME: worker
     command: ["npm", "run", "worker"]
     depends_on:
@@ -50,16 +59,15 @@ services:
 
   backup:
     image: ghcr.io/cjrussell23/job-ai-backup:${IMAGE_TAG:-latest}
-    build: ./backup
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://jobai:${POSTGRES_PASSWORD}@postgres:5432/jobai
-      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE in .env}
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE}
       BACKUP_TIME: ${BACKUP_TIME:-03:00}
       TZ: America/Edmonton
     volumes:
-      # Point BACKUP_DIR at a different drive from the database's, e.g. the 14 TB drive.
-      - ${BACKUP_DIR:-./backups}:/backups
+      # A directory on a different drive from the database's, e.g. the 14 TB drive.
+      - ${BACKUP_DIR:?set BACKUP_DIR}:/backups
     depends_on:
       postgres:
         condition: service_healthy

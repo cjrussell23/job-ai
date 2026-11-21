@@ -24,14 +24,10 @@ After changing a table in `web/src/db/schema/`, run `npm run db:generate` and co
 
 ## Deployment
 
-Merges to `main` publish `ghcr.io/cjrussell23/job-ai-web` and `ghcr.io/cjrussell23/job-ai-backup`. They are private, so the server logs in once with a GitHub token that can read packages (`docker login ghcr.io -u cjrussell23`).
+Merges to `main` publish `ghcr.io/cjrussell23/job-ai-web` and `ghcr.io/cjrussell23/job-ai-backup`. They are private, so Portainer has a registry entry for `ghcr.io` (username `cjrussell23`, a GitHub token with only `read:packages`).
 
-On the server the stack lives in `~/job-ai` with `docker-compose.yml` and a filled-in `.env` (from `.env.example`):
+The app runs as the Portainer stack `job-ai`: its compose file is `docker-compose.yml` (pasted into the stack's web editor) and every setting is a stack environment variable, listed in `.env.example`. To update after a merge, open the stack and choose **Pull and redeploy**. The web container applies migrations on start.
 
-```bash
-cd ~/job-ai && docker compose pull && docker compose up -d
-```
-
-The web container applies migrations on start. It publishes no port: it joins the `cloudflared` container's Docker network (`TUNNEL_NETWORK`), and the tunnel's public hostname `jobs.chjrussell.com` points at `http://job-ai-web:3000`.
+The web container publishes no port. It joins the `cloudflared` container's Docker network (`TUNNEL_NETWORK`), and the tunnel's public hostname `jobs.chjrussell.com` points at `http://job-ai-web:3000`.
 
 The `backup` service writes a nightly encrypted database dump to `BACKUP_DIR`; see [docs/backups.md](docs/backups.md) for setup and restoring.
