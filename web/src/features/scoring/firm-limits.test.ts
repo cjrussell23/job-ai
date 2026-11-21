@@ -48,6 +48,22 @@ describe("firm limits", () => {
     ).toBe(false);
   });
 
+  test("a target place can be a province or a country", () => {
+    const alberta = target({
+      locations: ["Alberta"],
+      locationIsFirm: true,
+      workplace: "local_only",
+    });
+    expect(checkFirmLimits(job({ location: "Red Deer, AB" }), alberta).pass).toBe(true);
+    expect(checkFirmLimits(job({ location: "Vancouver, BC" }), alberta).failed).toEqual([
+      "location",
+    ]);
+    const canada = target({ locations: ["Canada"], locationIsFirm: true, workplace: "local_only" });
+    expect(checkFirmLimits(job({ location: "Halifax, Nova Scotia" }), canada).pass).toBe(true);
+    // A location with nothing readable is unknown, not a fail.
+    expect(checkFirmLimits(job({ location: "" }), canada).unknown).toEqual(["location"]);
+  });
+
   test("remote only wants remote jobs; an unstated workplace is unknown", () => {
     const remoteOnly = target({ locationIsFirm: true, workplace: "remote_only" });
     expect(checkFirmLimits(job({ remote: "remote" }), remoteOnly).pass).toBe(true);

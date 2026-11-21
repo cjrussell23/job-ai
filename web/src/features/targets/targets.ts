@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
 import { type JobTarget, jobTargets } from "@/db/schema";
+import { parsePlace, placeLabel } from "@/lib/places";
 
 export type { JobTarget };
 
@@ -10,7 +11,26 @@ const titleList = z.array(z.string().trim().min(1).max(100)).max(20);
 export const targetInputSchema = z
   .object({
     roleType: z.string().trim().min(1).max(200),
-    locations: z.array(z.string().trim().min(1).max(100)).max(10).default([]),
+    // Each place is a city, province or country, stored in its canonical form.
+    locations: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(100)
+          .transform((text, ctx) => {
+            const place = parsePlace(text);
+            if (!place) {
+              ctx.addIssue({ code: "custom", message: `"${text}" isn't a place we can search.` });
+              return z.NEVER;
+            }
+            return placeLabel(place);
+          }),
+      )
+      .max(10)
+      .default([])
+      .transform((places) => [...new Set(places)]),
     workplace: z.enum(["remote_only", "local_or_remote", "local_only"]).default("local_or_remote"),
     locationIsFirm: z.boolean().default(false),
     hideUnknownLocation: z.boolean().default(false),

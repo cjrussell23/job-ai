@@ -1,6 +1,6 @@
 import { parse } from "node-html-parser";
 import { type Fetcher, httpFetcher, sleep } from "./http";
-import { city, titleMatches } from "./match";
+import { locationMatches, titleMatches } from "./match";
 import { parsePayText } from "./pay-text";
 import type { SearchQuery, SearchSource } from "./source";
 
@@ -14,6 +14,24 @@ const sitemapUrl = "https://jobpostings.alberta.ca/sitemap.xml";
 
 export type SitemapEntry = { url: string; city: string; title: string };
 
+const multiWordCities = [
+  "red deer",
+  "fort mcmurray",
+  "medicine hat",
+  "grande prairie",
+  "st albert",
+  "sherwood park",
+  "spruce grove",
+  "fort saskatchewan",
+  "cold lake",
+  "high level",
+  "high river",
+  "peace river",
+  "slave lake",
+  "rocky mountain house",
+  "fort vermilion",
+].map((c) => c.split(" "));
+
 export function parseSitemap(xml: string): SitemapEntry[] {
   return parse(xml)
     .querySelectorAll("loc")
@@ -21,8 +39,11 @@ export function parseSitemap(xml: string): SitemapEntry[] {
     .flatMap((url) => {
       const slug = url.match(/\/job\/([^/]+)\/\d+\/?$/)?.[1];
       if (!slug) return [];
-      const [placeName, ...titleParts] = decodeURIComponent(slug).split("-");
-      return [{ url, city: placeName ?? "", title: titleParts.join(" ") }];
+      const words = decodeURIComponent(slug).split("-");
+      // Most cities are one word, but not Red Deer, Fort McMurray or Medicine Hat.
+      const size =
+        multiWordCities.find((c) => c.every((w, i) => words[i]?.toLowerCase() === w))?.length ?? 1;
+      return [{ url, city: words.slice(0, size).join(" "), title: words.slice(size).join(" ") }];
     });
 }
 
@@ -51,9 +72,10 @@ export function createAlbertaSource(fetcher: Fetcher = httpFetcher, pause = slee
       if (!cached || Date.now() - cached.at > 3_600_000) {
         cached = { entries: parseSitemap(await fetcher.text(sitemapUrl)), at: Date.now() };
       }
-      const wanted = city(query.location);
+      // Every posting is in Alberta, so a search for Alberta or Canada covers all of them.
       const matches = cached.entries.filter(
-        (e) => city(e.city) === wanted && titleMatches(e.title, [query.title]),
+        (e) =>
+          locationMatches(`${e.city}, AB`, query.location) && titleMatches(e.title, [query.title]),
       );
       const postings: unknown[] = [];
       for (const entry of matches) {
