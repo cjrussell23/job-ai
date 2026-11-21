@@ -139,3 +139,21 @@ export async function setSearchTitleProposal(
     )
     .where(and(eq(jobTargets.id, targetId), eq(jobTargets.userId, userId)));
 }
+
+/**
+ * Searches wanted by every member's active targets, for the daily run. Only titles,
+ * places and the remote setting leave this feature: nothing that identifies a member.
+ */
+export async function activeTargetSearches(): Promise<
+  Pick<JobTarget, "searchTitles" | "locations" | "workplace">[]
+> {
+  const rows = await db()
+    .select({
+      searchTitles: jobTargets.searchTitles,
+      locations: jobTargets.locations,
+      workplace: jobTargets.workplace,
+    })
+    .from(jobTargets)
+    .where(eq(jobTargets.active, true));
+  return rows.filter((r) => r.searchTitles.length > 0);
+}

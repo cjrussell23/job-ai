@@ -25,6 +25,11 @@ const settingsSchema = z.object({
   defaultSpendCapCents: z.int().min(0).default(1000),
   /** Sources switched off by the admin; every available source is on unless set to false. */
   sourcesEnabled: z.record(z.string(), z.boolean()).default({}),
+  /** When the daily search starts, Calgary time ("HH:MM"). */
+  dailyRunTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .default("05:00"),
   /** How many times a member may rescore their matches per day. */
   rescoreLimitPerDay: z.int().min(0).default(1),
 });

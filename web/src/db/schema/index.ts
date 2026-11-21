@@ -5,4 +5,5 @@ export * from "./backups";
 export * from "./jobs";
 export * from "./members";
 export * from "./profile";
+export * from "./runs";
 export * from "./targets";
