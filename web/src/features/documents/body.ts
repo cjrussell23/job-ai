@@ -28,10 +28,14 @@ export const resumeEntrySchema = z.object({
 });
 export type ResumeEntry = z.infer<typeof resumeEntrySchema>;
 
+/** A clickable link in the header, e.g. LinkedIn. Older bodies have none. */
+export const headerLinkSchema = z.object({ label: z.string(), url: z.string() });
+
 export const resumeBodySchema = z.object({
   kind: z.literal("resume"),
   name: z.string(),
   contact: z.string(),
+  links: z.array(headerLinkSchema).default([]),
   /** A short summary at the top; empty to leave it out. */
   summary: z.array(lineSchema),
   sections: z.array(
@@ -42,6 +46,8 @@ export const resumeBodySchema = z.object({
     }),
   ),
   skills: z.array(lineSchema),
+  /** Where the skills block sits among the sections; absent means after them all. */
+  skillsAt: z.number().int().min(0).optional(),
 });
 export type ResumeBody = z.infer<typeof resumeBodySchema>;
 
@@ -49,6 +55,7 @@ export const coverLetterBodySchema = z.object({
   kind: z.literal("cover_letter"),
   name: z.string(),
   contact: z.string(),
+  links: z.array(headerLinkSchema).default([]),
   greeting: z.string(),
   paragraphs: z.array(lineSchema),
   closing: z.string(),

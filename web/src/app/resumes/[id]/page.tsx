@@ -5,23 +5,32 @@ import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { resumeBodySchema } from "@/features/documents/body";
-import { type BuilderItem, ResumeBuilder } from "@/features/documents/components/resume-builder";
+import { ResumeBuilder } from "@/features/documents/components/resume-builder";
+import { recommendedPages, yearsOfExperience } from "@/features/documents/guidance";
+import { readLayout } from "@/features/documents/layout";
 import { getStandingResume, pickedItems, resumeItems } from "@/features/documents/standing";
 import { deleteStandingResumeAction } from "@/features/documents/standing-actions";
+import type { BuildableItem } from "@/features/documents/standing-body";
 import { requireMember } from "@/features/members/session";
+import { documentHeader } from "@/features/profile/contact";
 import { listItems, type ProfileItem } from "@/features/profile/profile";
 
 const builderTypes = new Set(["role", "project", "certification", "skill", "bullet"]);
 
-function toBuilderItem(item: ProfileItem): BuilderItem | null {
-  if (!builderTypes.has(item.type)) return null;
-  const dates = [item.startDate, item.endDate].filter(Boolean).join(" – ");
+/** Only the fields the builder needs go to the browser. */
+function toBuildable(item: ProfileItem): BuildableItem {
+  const { id, type, parentId, title, organization, content, startDate, endDate } = item;
   return {
-    id: item.id,
-    type: item.type as BuilderItem["type"],
-    parentId: item.parentId,
-    label: item.type === "bullet" ? item.content : item.title || "(untitled)",
-    detail: item.type === "bullet" ? "" : [item.organization, dates].filter(Boolean).join(", "),
+    id,
+    type,
+    parentId,
+    title,
+    organization,
+    content,
+    startDate,
+    endDate,
+    visibility: item.visibility,
+    position: item.position,
   };
 }
 
@@ -32,16 +41,18 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
   const doc = isNew ? undefined : await getStandingResume(userId, id);
   if (!isNew && !doc) notFound();
   const body = resumeBodySchema.safeParse(doc?.body);
-  const items = resumeItems(await listItems(userId))
-    .map(toBuilderItem)
-    .filter((i): i is BuilderItem => i !== null);
+  const [all, header] = await Promise.all([listItems(userId), documentHeader(userId)]);
+  const items = resumeItems(all)
+    .filter((i) => builderTypes.has(i.type))
+    .map(toBuildable);
+  const years = yearsOfExperience(items.filter((i) => i.type === "role").map((i) => i.startDate));
   // A new resume starts with everything picked; trimming is easier than building up.
   const picked = body.success ? [...pickedItems(body.data)] : items.map((i) => i.id);
 
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-1">
             <Link href="/resumes" className="text-sm text-muted-foreground hover:underline">
@@ -91,6 +102,10 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
             name={doc?.name ?? ""}
             items={items}
             picked={picked}
+            layout={readLayout(doc?.layout)}
+            header={header}
+            recommendedPages={recommendedPages(years)}
+            yearsOfExperience={years}
           />
         )}
       </main>

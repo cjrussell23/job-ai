@@ -9,6 +9,7 @@ import { resetDb } from "@/test/db";
 import { createMember } from "@/test/fixtures";
 import { allLines, resumeBodySchema } from "./body";
 import { documentsForJob } from "./documents";
+import { renderResume } from "./render";
 import {
   deleteStandingResume,
   getStandingResume,
@@ -123,5 +124,45 @@ describe("standing resumes", () => {
     });
     expect(await deleteStandingResume(other, saved.id)).toBe(false);
     expect((await getStandingResume(userId, saved.id))?.name).toBe("Mine");
+  });
+
+  test("work and personal projects are separate sections, in the member's order", async () => {
+    const userId = await createMember("a@example.com");
+    const ids = await profile(userId);
+    const work = await createItem(userId, {
+      type: "project",
+      title: "Billing",
+      organization: "acme",
+    });
+    const own = await createItem(userId, { type: "project", title: "Blog" });
+    if (!work.ok || !own.ok) throw new Error("items");
+    const saved = await saveStandingResume(
+      userId,
+      null,
+      "Ordered",
+      [ids.roleId, ids.skillId, work.id, own.id],
+      { pages: 2, density: "compact", order: ["skills", "personalProjects"] },
+    );
+    if (!saved.ok) throw new Error("not saved");
+    const doc = await getStandingResume(userId, saved.id);
+    expect(doc?.layout).toEqual({
+      pages: 2,
+      density: "compact",
+      order: ["skills", "personalProjects", "experience", "workProjects", "education"],
+    });
+    const body = resumeBodySchema.parse(doc?.body);
+    expect(body.sections.map((s) => s.heading)).toEqual([
+      "Personal projects",
+      "Experience",
+      "Work projects",
+    ]);
+    expect(body.skillsAt).toBe(0);
+    const html = renderResume(body);
+    expect(html.indexOf("<h2>Skills</h2>")).toBeLessThan(html.indexOf("Personal projects"));
+
+    expect(await saveStandingResume(userId, null, "Bad", [ids.roleId], { pages: 9 })).toEqual({
+      ok: false,
+      reason: "invalid_layout",
+    });
   });
 });

@@ -2,12 +2,15 @@ import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { memberHeader } from "@/features/members/members";
 import { requireMember } from "@/features/members/session";
+import { ContactForm } from "@/features/profile/components/contact-form";
 import { ItemCard } from "@/features/profile/components/item-card";
 import { ItemForm } from "@/features/profile/components/item-form";
 import { RefreshWhile } from "@/features/profile/components/refresh-while";
 import { ReviewPanel } from "@/features/profile/components/review-panel";
 import { UploadForm } from "@/features/profile/components/upload-form";
+import { getContact } from "@/features/profile/contact";
 import { sectionOrder } from "@/features/profile/item-fields";
 import { latestUpload, listItems, type ProfileItem } from "@/features/profile/profile";
 
@@ -37,7 +40,12 @@ function UploadStatus({ upload }: { upload: Awaited<ReturnType<typeof latestUplo
 
 async function Profile() {
   const { userId, name, member } = await requireMember();
-  const [items, upload] = await Promise.all([listItems(userId), latestUpload(userId)]);
+  const [items, upload, contact, account] = await Promise.all([
+    listItems(userId),
+    latestUpload(userId),
+    getContact(userId),
+    memberHeader(userId),
+  ]);
   const bulletsByParent = new Map<string, ProfileItem[]>();
   for (const item of items) {
     if (item.parentId) {
@@ -58,6 +66,24 @@ async function Profile() {
           </p>
         </div>
         {items.length > 0 && <ReviewPanel userId={userId} jobId={null} />}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact details and links</CardTitle>
+            <CardDescription>
+              The top of every resume and cover letter. Blank fields use your Google account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ContactForm
+              fullName={contact?.fullName ?? ""}
+              email={contact?.email ?? ""}
+              phone={contact?.phone ?? ""}
+              location={contact?.location ?? ""}
+              links={contact?.links ?? []}
+              fallback={account}
+            />
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Start from a resume</CardTitle>

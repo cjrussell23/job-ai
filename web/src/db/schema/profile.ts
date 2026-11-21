@@ -2,6 +2,7 @@ import {
   type AnyPgColumn,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -88,3 +89,22 @@ export const resumeUploads = pgTable("resume_uploads", {
 });
 
 export type ResumeUpload = typeof resumeUploads.$inferSelect;
+
+/**
+ * How a member is reached, for the header of every resume and cover letter.
+ * One row per member; empty fields fall back to the Google account's name and email.
+ */
+export const profileContacts = pgTable("profile_contacts", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  fullName: text("full_name").notNull().default(""),
+  email: text("email").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  location: text("location").notNull().default(""),
+  /** Ordered links such as LinkedIn, GitHub or a portfolio: `{ label, url }`. */
+  links: jsonb("links").$type<{ label: string; url: string }[]>().notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type ProfileContact = typeof profileContacts.$inferSelect;
