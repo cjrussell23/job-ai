@@ -4,6 +4,7 @@ import { Plus, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { platformOf } from "@/features/documents/icons";
 import { type ContactFormState, saveContactAction } from "@/features/profile/contact-actions";
 
 type Props = {
@@ -16,7 +17,8 @@ type Props = {
   fallback: { name: string; email: string };
 };
 
-const linkIdeas = ["LinkedIn", "GitHub", "Portfolio"];
+// Three empty rows to start; a row left blank is not saved.
+const linkIdeas = ["", "", ""];
 
 /** Name, contact details and links printed at the top of every resume and cover letter. */
 export function ContactForm(props: Props) {
@@ -25,7 +27,7 @@ export function ContactForm(props: Props) {
     {},
   );
   const [links, setLinks] = useState(() =>
-    (props.links.length ? props.links : linkIdeas.map((label) => ({ label, url: "" }))).map(
+    (props.links.length ? props.links : linkIdeas.map((url) => ({ label: "", url }))).map(
       (l, i) => ({ ...l, key: i }),
     ),
   );
@@ -61,32 +63,52 @@ export function ContactForm(props: Props) {
       </div>
       <div className="flex flex-col gap-2">
         <span className="font-medium">Links</span>
-        {links.map((link, index) => (
-          <div key={link.key} className="flex items-center gap-2">
-            <Input
-              name="linkLabel"
-              defaultValue={link.label}
-              placeholder="Label"
-              aria-label={`Link ${index + 1} label`}
-              className="w-32"
-            />
-            <Input
-              name="linkUrl"
-              defaultValue={link.url}
-              placeholder="linkedin.com/in/you"
-              aria-label={`Link ${index + 1} address`}
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label={`Remove link ${index + 1}`}
-              onClick={() => setLinks(links.filter((l) => l.key !== link.key))}
+        <div className="hidden grid-cols-[minmax(0,1fr)_10rem_2.25rem] gap-2 text-xs text-muted-foreground sm:grid">
+          <span>Address</span>
+          <span>Shown as (optional)</span>
+        </div>
+        {links.map((link, index) => {
+          const platform = platformOf(
+            /^https?:\/\//i.test(link.url) ? link.url : `https://${link.url}`,
+          );
+          return (
+            <div
+              key={link.key}
+              className="grid grid-cols-[minmax(0,1fr)_10rem_2.25rem] items-center gap-2"
             >
-              <X className="size-4" />
-            </Button>
-          </div>
-        ))}
+              <Input
+                name="linkUrl"
+                value={link.url}
+                onChange={(e) => {
+                  const url = e.currentTarget.value;
+                  setLinks(links.map((l) => (l.key === link.key ? { ...l, url } : l)));
+                }}
+                placeholder="linkedin.com/in/you"
+                aria-label={`Link ${index + 1} address`}
+              />
+              <Input
+                name="linkLabel"
+                value={link.label}
+                onChange={(e) => {
+                  const label = e.currentTarget.value;
+                  setLinks(links.map((l) => (l.key === link.key ? { ...l, label } : l)));
+                }}
+                placeholder={platform.name}
+                aria-label={`Link ${index + 1} shown as`}
+                maxLength={40}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={`Remove link ${index + 1}`}
+                onClick={() => setLinks(links.filter((l) => l.key !== link.key))}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          );
+        })}
         {links.length < 8 && (
           <Button
             type="button"
@@ -102,8 +124,10 @@ export function ContactForm(props: Props) {
           </Button>
         )}
         <span className="text-xs text-muted-foreground">
-          Links print as clickable addresses, e.g. linkedin.com/in/you. Leave an address blank to
-          skip it.
+          A resume shows each link as its address (linkedin.com/in/you) or, if you choose labels in
+          the resume builder, as the text under "Shown as": your handle, like "chjrussell", reads
+          well next to the LinkedIn icon. Left blank, it shows the platform's name. Leave an address
+          blank to skip it.
         </span>
       </div>
       <div className="flex items-center gap-3">
