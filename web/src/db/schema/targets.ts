@@ -40,6 +40,8 @@ export const jobTargets = pgTable("job_targets", {
   hideUnknownPay: boolean("hide_unknown_pay").notNull().default(false),
   note: text("note").notNull().default(""),
   active: boolean("active").notNull().default(true),
+  /** Last edit that can affect target fit; compared with when each match was scored. */
+  scoringChangedAt: timestamp("scoring_changed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

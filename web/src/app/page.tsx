@@ -4,11 +4,16 @@ import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
 import { requireMember } from "@/features/members/session";
 import { FeedCard } from "@/features/scoring/components/feed-card";
+import { RescoreBanner } from "@/features/scoring/components/rescore-banner";
 import { feedForUser } from "@/features/scoring/feed";
+import { rescoreStatus } from "@/features/scoring/rescore";
 
 async function Feed() {
   const { userId, name, member } = await requireMember();
-  const items = await feedForUser(userId, member.targetFitWeight);
+  const [items, rescore] = await Promise.all([
+    feedForUser(userId, member.targetFitWeight),
+    rescoreStatus(userId),
+  ]);
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
@@ -20,6 +25,7 @@ async function Feed() {
             (target fit) and how well your profile suits it (profile fit).
           </p>
         </div>
+        <RescoreBanner status={rescore} />
         {items.length === 0 ? (
           <p className="rounded-lg border p-6 text-muted-foreground">
             No matches yet. Build your{" "}

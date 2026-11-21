@@ -100,3 +100,13 @@ export function jobForPrompt(job: Job, maxDescription = 6000): string {
   lines.push("", job.description.slice(0, maxDescription) || "(no description)");
   return lines.join("\n");
 }
+
+/** Which of these jobs are still open. */
+export async function openJobIds(jobIds: string[]): Promise<Set<string>> {
+  if (jobIds.length === 0) return new Set();
+  const rows = await db()
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(and(inArray(jobs.id, jobIds), eq(jobs.state, "open")));
+  return new Set(rows.map((r) => r.id));
+}

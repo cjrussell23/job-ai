@@ -74,7 +74,7 @@ export async function updateTarget(
   if (!existing) return { ok: false, reason: "not_found" };
   await db()
     .update(jobTargets)
-    .set({ ...parsed.data, updatedAt: sql`now()` })
+    .set({ ...parsed.data, updatedAt: sql`now()`, scoringChangedAt: sql`now()` })
     .where(and(eq(jobTargets.id, targetId), eq(jobTargets.userId, userId)));
   return {
     ok: true,

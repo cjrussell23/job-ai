@@ -24,6 +24,7 @@ export const userOwnedTables = {
   job_targets: "exported",
   ai_usage: "exported",
   job_matches: "exported",
+  rescore_requests: "excluded: a log of rescore button use, kept for the daily limit",
   // A log of shared-job edits; the split itself stays, the log row goes with the member.
   job_splits: "excluded: log of edits to shared jobs",
   // Sign-in records hold tokens; they are never exported.
