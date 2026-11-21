@@ -164,3 +164,24 @@ export const memberJobPay = pgTable(
 );
 
 export type MemberJobPay = typeof memberJobPay.$inferSelect;
+
+export const boardCheckStatus = pgEnum("board_check_status", ["found", "not_found"]);
+
+/**
+ * Whether a company that shows up in matches has its own Greenhouse, Lever or Ashby
+ * board, found by trying its name as the board id. Shared like the companies
+ * themselves; members see the found ones as suggestions to watch.
+ */
+export const companyBoardChecks = pgTable("company_board_checks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** The company name normalized as for job identity, e.g. "affirm". */
+  companyKey: text("company_key").notNull().unique(),
+  companyName: text("company_name").notNull(),
+  status: boardCheckStatus("status").notNull(),
+  system: boardSystem("system"),
+  boardId: text("board_id"),
+  openJobs: integer("open_jobs"),
+  checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type CompanyBoardCheck = typeof companyBoardChecks.$inferSelect;

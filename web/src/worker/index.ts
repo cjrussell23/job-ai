@@ -12,6 +12,7 @@ import { executeRun, startScheduledRunIfDue } from "@/features/runs/daily-run";
 import { runRescore } from "@/features/scoring/rescore";
 import { scoreAfterRun } from "@/features/scoring/score";
 import { registerAllSources } from "@/features/sources";
+import { checkCompanyBoards } from "@/features/sources/company-suggestions";
 import { proposeTitlesForTarget } from "@/features/targets/propose-titles";
 import { log } from "@/lib/log";
 import { queue, queues, stopQueue } from "@/lib/queue";
@@ -68,6 +69,11 @@ async function main() {
           }),
           ...(await scoreAfterRun()),
           notifications: await notifyNewMatches(),
+          // Last: looks for job boards of companies in today's matches, to suggest watching.
+          companyBoards: await checkCompanyBoards().catch((err: unknown) => {
+            log.error({ err }, "checking company boards failed");
+            return { checked: 0, found: 0 };
+          }),
         }),
       });
     }
@@ -122,6 +128,10 @@ async function main() {
       log.info({ documentId }, "reviewing resume");
       await runFeedback(userId, documentId);
     }
+  });
+
+  await boss.work(queues.checkCompanyBoards, { localConcurrency: 1 }, async () => {
+    await checkCompanyBoards();
   });
 
   log.info("worker started");
