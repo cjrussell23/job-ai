@@ -127,6 +127,13 @@
       "when": 1795288715573,
       "tag": "0017_contact_and_layout",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795289750628,
+      "tag": "0018_item_variants",
+      "breakpoints": true
     }
   ]
 }

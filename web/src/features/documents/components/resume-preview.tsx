@@ -9,8 +9,8 @@ const pageWidthPx = 8.5 * pxPerIn;
 type Props = {
   html: string;
   layout: Layout;
-  /** Reports the estimated page count each time the preview is laid out. */
-  onPages: (pages: number) => void;
+  /** Reports the layout each time the preview is drawn: pages and lines past the target. */
+  onMeasure: (m: { pages: number; overflowLines: number }) => void;
 };
 
 /**
@@ -18,7 +18,7 @@ type Props = {
  * The page count is an estimate: the PDF keeps each entry whole, which can push a
  * page break slightly earlier than shown.
  */
-export function ResumePreview({ html, layout, onPages }: Props) {
+export function ResumePreview({ html, layout, onMeasure }: Props) {
   const frame = useRef<HTMLIFrameElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.6);
@@ -55,7 +55,13 @@ export function ResumePreview({ html, layout, onPages }: Props) {
     }
     doc.body.style.position = "relative";
     setHeight(Math.max(doc.body.scrollHeight, 11 * pxPerIn));
-    onPages(pages);
+    const style = densityStyles[layout.density];
+    const linePx = (style.fontPt * style.lineHeight * pxPerIn) / 72;
+    const overflowLines = Math.max(
+      0,
+      Math.ceil((contentPx - layout.pages * pageContentPx) / linePx),
+    );
+    onMeasure({ pages, overflowLines });
   };
 
   return (

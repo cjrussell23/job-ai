@@ -74,6 +74,29 @@ export function ItemForm({ type, item, parentId, onDone }: Props) {
           </>
         )}
       </div>
+      {fields.alternateTitles && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${idPrefix}-alt`}>{fields.alternateTitles}</Label>
+          <Textarea
+            id={`${idPrefix}-alt`}
+            name="alternateTitles"
+            defaultValue={item?.alternateTitles.join("\n")}
+            rows={2}
+            placeholder="e.g. your official title, if it differs"
+          />
+        </div>
+      )}
+      {fields.url && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${idPrefix}-url`}>{fields.url}</Label>
+          <Input
+            id={`${idPrefix}-url`}
+            name="url"
+            defaultValue={item?.url}
+            placeholder="e.g. mysite.com"
+          />
+        </div>
+      )}
       {fields.content && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`${idPrefix}-content`}>{fields.content}</Label>
@@ -81,8 +104,19 @@ export function ItemForm({ type, item, parentId, onDone }: Props) {
             id={`${idPrefix}-content`}
             name="content"
             defaultValue={item?.content}
-            required={type === "bullet" || type === "note"}
+            required={type === "bullet" || type === "note" || type === "summary"}
             rows={type === "bullet" ? 2 : 4}
+          />
+        </div>
+      )}
+      {fields.shortContent && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`${idPrefix}-short`}>{fields.shortContent}</Label>
+          <Textarea
+            id={`${idPrefix}-short`}
+            name="shortContent"
+            defaultValue={item?.shortContent}
+            rows={1}
           />
         </div>
       )}

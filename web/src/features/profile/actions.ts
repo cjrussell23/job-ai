@@ -41,6 +41,12 @@ function fieldsFrom(form: FormData) {
     title: text("title"),
     organization: text("organization"),
     content: text("content"),
+    shortContent: text("shortContent"),
+    alternateTitles: text("alternateTitles")
+      .split("\n")
+      .map((t) => t.trim())
+      .filter(Boolean),
+    url: text("url"),
     startDate: text("startDate"),
     endDate: text("endDate"),
     visibility: text("visibility") || "auto",

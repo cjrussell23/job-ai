@@ -91,3 +91,115 @@ export function pageAdvice(estimated: number, target: number): Advice {
   }
   return { status: "good", message: `Fits on ${target === 1 ? "one page" : `${target} pages`}.` };
 }
+
+const weakOpeners = [
+  "responsible for",
+  "helped",
+  "helped with",
+  "worked on",
+  "assisted",
+  "involved in",
+  "tasked with",
+  "duties included",
+  "participated in",
+];
+
+/** Common irregular past-tense verbs that start resume bullets. */
+const irregularPast = new Set(
+  "built led ran wrote set made cut grew drove took won began brought bought chose did found gave got held kept knew lost met paid put rebuilt rewrote sold sent shot spent stood taught thought told understood undertook upheld oversaw overtook undertook".split(
+    " ",
+  ),
+);
+
+export const isPastTense = (word: string) =>
+  irregularPast.has(word) ||
+  (word.endsWith("ed") && !["need", "feed", "seed", "speed", "lead"].includes(word));
+
+const firstWord = (text: string) =>
+  text
+    .trim()
+    .split(/\s+/)[0]
+    ?.toLowerCase()
+    .replace(/[^a-z]/g, "") ?? "";
+
+/** Checks on one bullet's wording, as advice. */
+export function bulletStrength(text: string): Advice[] {
+  const lower = text.trim().toLowerCase();
+  const advice: Advice[] = [];
+  const weak = weakOpeners.find((w) => lower.startsWith(w));
+  if (weak) {
+    advice.push({
+      status: "warn",
+      message: `Starts with "${weak}". Lead with what you did: built, cut, launched, automated.`,
+    });
+  }
+  if (/\b(i|my|me)\b/.test(lower)) {
+    advice.push({
+      status: "warn",
+      message: 'Uses "I" or "my". Resume bullets usually leave them out.',
+    });
+  }
+  if (!/\d/.test(lower)) {
+    advice.push({
+      status: "good",
+      message: "No number. Add one if you have it: time saved, users, %, money.",
+    });
+  }
+  return advice;
+}
+
+/** Checks across one entry's bullets: repeated openers and mixed tenses. */
+export function entryStrength(bullets: string[]): Advice[] {
+  const advice: Advice[] = [];
+  const openers = bullets.map(firstWord).filter(Boolean);
+  const counts = new Map<string, number>();
+  for (const word of openers) counts.set(word, (counts.get(word) ?? 0) + 1);
+  const repeated = [...counts].filter(([, n]) => n >= 3).map(([w]) => w);
+  if (repeated.length) {
+    advice.push({
+      status: "warn",
+      message: `${repeated.map((w) => `"${w}"`).join(", ")} starts 3 or more bullets. Vary the verbs.`,
+    });
+  }
+  const past = openers.filter(isPastTense).length;
+  const present = openers.length - past;
+  if (openers.length >= 3 && past >= 1 && present >= 1) {
+    advice.push({
+      status: "warn",
+      message: "Mixes tenses. Use one: present for a current role, past for earlier ones.",
+    });
+  }
+  return advice;
+}
+
+export type FitCandidate = {
+  id: string;
+  text: string;
+  /** How many bullets the entry has beyond its recommended maximum. */
+  excess: number;
+  /** Years since the entry ended; older entries give way first. */
+  age: number;
+};
+
+/** Lines a bullet takes at roughly the standard density. */
+export const linesFor = (text: string) => Math.max(1, Math.ceil(text.length / charsPerLine));
+
+/**
+ * Bullets to drop to save `linesToSave` lines: first from entries over their
+ * recommended count, then the oldest entries, then the longest bullets.
+ */
+export function fitSuggestions(candidates: FitCandidate[], linesToSave: number): FitCandidate[] {
+  const ordered = [...candidates].sort(
+    (a, b) => b.excess - a.excess || b.age - a.age || b.text.length - a.text.length,
+  );
+  const picked: FitCandidate[] = [];
+  let saved = 0;
+  for (const c of ordered) {
+    if (saved >= linesToSave) break;
+    picked.push(c);
+    saved += linesFor(c.text);
+  }
+  return picked;
+}
+
+export { yearOf as yearOfDate };

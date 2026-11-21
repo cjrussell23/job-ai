@@ -29,3 +29,9 @@ export async function htmlToPdf(html: string): Promise<Uint8Array> {
     await context.close();
   }
 }
+
+/** Pages in a PDF Chromium produced: one "/Type /Page" object per page. */
+export function pdfPageCount(pdf: Uint8Array): number {
+  const text = Buffer.from(pdf).toString("latin1");
+  return (text.match(/\/Type\s*\/Page(?!s)/g) ?? []).length;
+}

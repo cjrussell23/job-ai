@@ -61,6 +61,7 @@ test("uses the model chosen in the admin settings", async () => {
     draftCoverLetter: "anthropic/claude-sonnet-5.5",
     tailorResume: "anthropic/claude-sonnet-5.5",
     reviewProfile: "anthropic/claude-sonnet-5.5",
+    pickResumeItems: "anthropic/claude-sonnet-5.5",
   });
   const fake = fakeModel({ words: [] });
   restore = fake.restore;
@@ -133,6 +134,7 @@ test("a model missing from the gateway price list is costed at the high fallback
     draftCoverLetter: "anthropic/claude-sonnet-5.5",
     tailorResume: "anthropic/claude-sonnet-5.5",
     reviewProfile: "anthropic/claude-sonnet-5.5",
+    pickResumeItems: "anthropic/claude-sonnet-5.5",
   });
   restore = fakeModel({ words: [] }).restore;
   await runTask(userId, echoTask, { text: "x" });

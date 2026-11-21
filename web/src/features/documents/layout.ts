@@ -43,14 +43,35 @@ function completeOrder(order: SectionKey[]): SectionKey[] {
   return [...seen, ...sectionKeys.filter((k) => !seen.includes(k))];
 }
 
+export const templates = ["clean", "classic"] as const;
+export type Template = (typeof templates)[number];
+export const templateLabels: Record<Template, string> = {
+  clean: "Clean (sans-serif)",
+  classic: "Classic (serif, centred header)",
+};
+
 export const layoutSchema = z.object({
   /** The length the member is aiming for. The builder warns past it; nothing is cut. */
   pages: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(1),
   density: z.enum(densities).default("standard"),
+  template: z.enum(templates).default("clean"),
   order: z
     .array(z.enum(sectionKeys))
     .default([...sectionKeys])
     .transform(completeOrder),
+  /** Section headings the member renamed; anything missing uses the default label. */
+  headings: z.partialRecord(z.enum(sectionKeys), z.string().trim().max(60)).default({}),
+  /** Several titles at one employer print under one employer heading. */
+  groupRoles: z.boolean().default(true),
+  showDates: z.boolean().default(true),
+  /** Profile item ids in the member's order for this resume; others follow in profile order. */
+  itemOrder: z.array(z.uuid()).max(500).default([]),
+  /** The title each role shows, chosen from its own title and alternates. */
+  titles: z.record(z.uuid(), z.string().max(300)).default({}),
+  /** Bullets printed in their short version. */
+  short: z.array(z.uuid()).max(500).default([]),
+  /** The profile summary shown at the top, if any. */
+  summaryId: z.uuid().nullable().default(null),
 });
 export type Layout = z.infer<typeof layoutSchema>;
 

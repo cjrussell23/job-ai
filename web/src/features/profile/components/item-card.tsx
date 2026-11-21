@@ -24,7 +24,12 @@ export function ItemCard({ item, children }: Props) {
         <div className="flex items-start gap-3">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             {isBullet ? (
-              <p className="text-sm before:mr-2 before:content-['•']">{item.content}</p>
+              <>
+                <p className="text-sm before:mr-2 before:content-['•']">{item.content}</p>
+                {item.shortContent && (
+                  <p className="pl-4 text-xs text-muted-foreground">Short: {item.shortContent}</p>
+                )}
+              </>
             ) : (
               <>
                 <p className="font-medium">
@@ -36,7 +41,22 @@ export function ItemCard({ item, children }: Props) {
                     </span>
                   )}
                 </p>
+                {item.alternateTitles.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Also: {item.alternateTitles.join(", ")}
+                  </p>
+                )}
                 {dates && <p className="text-sm text-muted-foreground">{dates}</p>}
+                {item.url && (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-muted-foreground underline underline-offset-2"
+                  >
+                    {item.url.replace(/^https?:\/\/(www\.)?/i, "")}
+                  </a>
+                )}
                 {item.title && item.content && (
                   <p className="whitespace-pre-line text-sm">{item.content}</p>
                 )}

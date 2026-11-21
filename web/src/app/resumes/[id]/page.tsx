@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
+import { RefreshWhile } from "@/components/refresh-while";
 import { SiteHeader } from "@/components/site-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { resumeBodySchema } from "@/features/documents/body";
@@ -9,17 +10,21 @@ import { ResumeBuilder } from "@/features/documents/components/resume-builder";
 import { recommendedPages, yearsOfExperience } from "@/features/documents/guidance";
 import { readLayout } from "@/features/documents/layout";
 import { getStandingResume, pickedItems, resumeItems } from "@/features/documents/standing";
-import { deleteStandingResumeAction } from "@/features/documents/standing-actions";
+import {
+  deleteStandingResumeAction,
+  duplicateStandingResumeAction,
+} from "@/features/documents/standing-actions";
 import type { BuildableItem } from "@/features/documents/standing-body";
 import { requireMember } from "@/features/members/session";
 import { documentHeader } from "@/features/profile/contact";
 import { listItems, type ProfileItem } from "@/features/profile/profile";
 
-const builderTypes = new Set(["role", "project", "certification", "skill", "bullet"]);
+const builderTypes = new Set(["role", "project", "certification", "skill", "bullet", "summary"]);
 
 /** Only the fields the builder needs go to the browser. */
 function toBuildable(item: ProfileItem): BuildableItem {
-  const { id, type, parentId, title, organization, content, startDate, endDate } = item;
+  const { id, type, parentId, title, organization, content, shortContent, alternateTitles } = item;
+  const { url, startDate, endDate, visibility, position } = item;
   return {
     id,
     type,
@@ -27,10 +32,13 @@ function toBuildable(item: ProfileItem): BuildableItem {
     title,
     organization,
     content,
+    shortContent,
+    alternateTitles,
+    url,
     startDate,
     endDate,
-    visibility: item.visibility,
-    position: item.position,
+    visibility,
+    position,
   };
 }
 
@@ -52,6 +60,7 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
+      <RefreshWhile active={doc?.state === "generating"} />
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="flex flex-col gap-1">
@@ -69,8 +78,22 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
               and save this resume again.
             </p>
           </div>
-          {doc && (
-            <div className="flex gap-2">
+          {doc?.body != null && doc.state === "approved" && (
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/documents/${doc.id}/text`}
+                target="_blank"
+                rel="noreferrer"
+                className={buttonVariants({ variant: "outline" })}
+              >
+                Plain text
+              </a>
+              <form action={duplicateStandingResumeAction}>
+                <input type="hidden" name="id" value={doc.id} />
+                <Button type="submit" variant="outline">
+                  Duplicate
+                </Button>
+              </form>
               <a
                 href={`/documents/${doc.id}/pdf`}
                 target="_blank"
@@ -88,7 +111,16 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
             </div>
           )}
         </div>
-        {items.length === 0 ? (
+        {doc?.state === "failed" && (
+          <p role="alert" className="text-sm text-destructive">
+            {doc.failure} Pick the items yourself below and save.
+          </p>
+        )}
+        {doc?.state === "generating" ? (
+          <p className="text-sm text-muted-foreground">
+            Picking the items that fit this target… this takes under a minute.
+          </p>
+        ) : items.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Your profile has nothing to put on a resume yet.{" "}
             <Link href="/profile" className="underline">

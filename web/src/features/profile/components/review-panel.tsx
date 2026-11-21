@@ -1,3 +1,4 @@
+import { RefreshWhile } from "@/components/refresh-while";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { jobsWithPostings } from "@/features/jobs/jobs";
@@ -11,7 +12,6 @@ import { latestReview } from "@/features/profile/review";
 import { reopenQuestionAction, startReviewAction } from "@/features/profile/review-actions";
 import { openSuggestions, suggestionKindLabels } from "@/features/profile/suggestions";
 import { QuestionCard } from "./question-card";
-import { RefreshWhile } from "./refresh-while";
 import { SuggestionCard } from "./suggestion-card";
 
 function questionContext(q: ProfileQuestion): string | null {
