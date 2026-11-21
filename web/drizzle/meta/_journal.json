@@ -43,6 +43,13 @@
       "when": 1795244969249,
       "tag": "0005_backup-runs",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795248510488,
+      "tag": "0006_jobs-and-postings",
+      "breakpoints": true
     }
   ]
 }

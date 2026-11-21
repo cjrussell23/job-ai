@@ -10,6 +10,7 @@ import {
   suspendMember,
 } from "@/features/members/members";
 import { requireAdmin } from "@/features/members/session";
+import { availableSourceIds } from "@/features/sources/catalogue";
 import { type AiTask, aiTasks, setSetting } from "./settings";
 
 export type ActionState = { message?: string; error?: string };
@@ -78,4 +79,15 @@ export async function aiSettingsAction(_: ActionState, form: FormData): Promise<
   return results.every((r) => r.ok)
     ? { message: "Saved." }
     : { error: "Those values are not valid." };
+}
+
+export async function sourcesAction(_: ActionState, form: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const enabled = Object.fromEntries(
+    availableSourceIds.map((id) => [id, form.get(`source.${id}`) === "on"]),
+  );
+  const result = await setSetting("sourcesEnabled", enabled);
+  revalidatePath("/admin");
+  revalidatePath("/targets");
+  return result.ok ? { message: "Saved." } : { error: "Those values are not valid." };
 }

@@ -1,15 +1,17 @@
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
+import { getSettings } from "@/features/admin/settings";
 import { requireMember } from "@/features/members/session";
 import { RefreshWhile } from "@/features/profile/components/refresh-while";
+import { SourceList } from "@/features/sources/components/source-list";
 import { TargetCard } from "@/features/targets/components/target-card";
 import { TargetForm } from "@/features/targets/components/target-form";
 import { listTargets } from "@/features/targets/targets";
 
 async function Targets() {
   const { userId, name, member } = await requireMember();
-  const targets = await listTargets(userId);
+  const [targets, settings] = await Promise.all([listTargets(userId), getSettings()]);
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
@@ -22,6 +24,10 @@ async function Targets() {
             every job is scored against it. Firm limits hide jobs outright; everything else only
             moves the score.
           </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium">Where the daily search looks</h2>
+          <SourceList enabled={settings.sourcesEnabled} />
         </div>
         {targets.map((target) => (
           <TargetCard key={target.id} target={target} />

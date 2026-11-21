@@ -23,6 +23,8 @@ const settingsSchema = z.object({
     .prefault({}),
   /** Monthly AI spend cap for members without their own cap, in cents. */
   defaultSpendCapCents: z.int().min(0).default(1000),
+  /** Sources switched off by the admin; every available source is on unless set to false. */
+  sourcesEnabled: z.record(z.string(), z.boolean()).default({}),
   /** How many times a member may rescore their matches per day. */
   rescoreLimitPerDay: z.int().min(0).default(1),
 });
