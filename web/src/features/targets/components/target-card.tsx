@@ -45,7 +45,7 @@ export function TargetCard({ target, market, searched = true, runTime }: Props) 
   const where =
     target.workplace === "remote_only"
       ? "Remote only"
-      : `${target.locations.join(", ") || "Anywhere"} ${workplaceLabels[target.workplace]}`;
+      : `${target.locations.join("; ") || "Anywhere"} ${workplaceLabels[target.workplace]}`;
 
   if (editing) {
     return (

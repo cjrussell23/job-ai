@@ -6,7 +6,7 @@ import { getSettings } from "@/features/admin/settings";
 import { PreferencesCard } from "@/features/feedback/components/preferences-card";
 import { listPreferences } from "@/features/feedback/feedback";
 import { requireMember } from "@/features/members/session";
-import { searchedTitles } from "@/features/runs/queries";
+import { searchedTargets } from "@/features/runs/queries";
 import { marketForTargets } from "@/features/scoring/market";
 import { SourceList } from "@/features/sources/components/source-list";
 import { TargetCard } from "@/features/targets/components/target-card";
@@ -22,7 +22,7 @@ async function Targets() {
   ]);
   const [market, searched] = await Promise.all([
     marketForTargets(userId, targets),
-    searchedTitles(targets.flatMap((t) => t.searchTitles)),
+    searchedTargets(targets),
   ]);
   return (
     <>
@@ -46,7 +46,7 @@ async function Targets() {
             key={target.id}
             target={target}
             market={market.get(target.id)}
-            searched={target.searchTitles.some((t) => searched.has(t.trim().toLowerCase()))}
+            searched={searched.has(target.id)}
             runTime={settings.dailyRunTime}
           />
         ))}

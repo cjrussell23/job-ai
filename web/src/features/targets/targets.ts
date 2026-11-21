@@ -182,7 +182,8 @@ export async function activeTargetSearches(): Promise<
 export function targetLabel(
   target: Pick<JobTarget, "roleType" | "workplace" | "locations">,
 ): string {
-  const places = target.locations.join(", ");
+  // Semicolons, since a city place already has a comma ("Ottawa, ON").
+  const places = target.locations.join("; ");
   const where =
     target.workplace === "remote_only"
       ? "Remote only"
