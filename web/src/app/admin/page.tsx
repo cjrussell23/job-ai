@@ -7,23 +7,27 @@ import { AiSettingsForm } from "@/features/admin/components/ai-settings-form";
 import { BackupCard } from "@/features/admin/components/backup-card";
 import { InviteForm } from "@/features/admin/components/invite-form";
 import { MembersTable } from "@/features/admin/components/members-table";
+import { RunsCard } from "@/features/admin/components/runs-card";
 import { SourcesForm } from "@/features/admin/components/sources-form";
 import { getSettings } from "@/features/admin/settings";
 import { gatewayModelIds } from "@/features/ai/pricing";
 import { spendThisMonthByUser } from "@/features/ai/usage";
 import { listMembers } from "@/features/members/members";
 import { requireAdmin } from "@/features/members/session";
+import { recentRuns, runSearches } from "@/features/runs/daily-run";
 
 // The dashboard deliberately shows no member's profile, documents or applications.
 async function AdminDashboard() {
   const { name } = await requireAdmin();
-  const [members, settings, spendByUser, backups, availableModels] = await Promise.all([
+  const [members, settings, spendByUser, backups, availableModels, runs] = await Promise.all([
     listMembers(),
     getSettings(),
     spendThisMonthByUser(),
     backupStatus(),
     gatewayModelIds(),
+    recentRuns(),
   ]);
+  const latestSearches = runs[0] ? await runSearches(runs[0].id) : [];
   return (
     <>
       <SiteHeader name={name} isAdmin />
@@ -63,6 +67,11 @@ async function AdminDashboard() {
             />
           </CardContent>
         </Card>
+        <RunsCard
+          runs={runs}
+          latestSearches={latestSearches}
+          dailyRunTime={settings.dailyRunTime}
+        />
         <Card>
           <CardHeader>
             <CardTitle>Sources</CardTitle>

@@ -1,11 +1,15 @@
 import { z } from "zod";
 import { closeDb } from "@/db/client";
+import { getSettings } from "@/features/admin/settings";
 import { parseUpload } from "@/features/profile/parse-upload";
+import { executeRun, startScheduledRunIfDue } from "@/features/runs/daily-run";
+import { registerAllSources } from "@/features/sources";
 import { proposeTitlesForTarget } from "@/features/targets/propose-titles";
 import { log } from "@/lib/log";
 import { queue, queues, stopQueue } from "@/lib/queue";
 
 async function main() {
+  registerAllSources();
   const boss = await queue();
 
   // Proves the worker is alive and the schedule runs; real jobs replace it in later phases.
@@ -31,6 +35,26 @@ async function main() {
       await proposeTitlesForTarget(userId, targetId);
     }
   });
+
+  // The daily search: checked every ten minutes against the admin's run time, so a
+  // change takes effect without a restart and a missed day is caught up.
+  const checkSchedule = async () => {
+    const { dailyRunTime } = await getSettings();
+    const result = await startScheduledRunIfDue(dailyRunTime);
+    if (result.started) await boss.send(queues.dailyRun, { runId: result.runId });
+  };
+  await boss.schedule(queues.dailyRunCheck, "*/10 * * * *");
+  await boss.work(queues.dailyRunCheck, checkSchedule);
+  const dailyRunJob = z.object({ runId: z.uuid() });
+  // A run can take a while (Job Bank asks for five seconds between pages).
+  await boss.work(queues.dailyRun, { localConcurrency: 1 }, async (jobs) => {
+    for (const job of jobs) {
+      const { runId } = dailyRunJob.parse(job.data);
+      log.info({ runId }, "daily run starting");
+      await executeRun(runId);
+    }
+  });
+  await checkSchedule();
 
   log.info("worker started");
 

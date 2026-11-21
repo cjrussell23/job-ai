@@ -10,7 +10,9 @@ import {
   suspendMember,
 } from "@/features/members/members";
 import { requireAdmin } from "@/features/members/session";
+import { startManualRun } from "@/features/runs/daily-run";
 import { availableSourceIds } from "@/features/sources/catalogue";
+import { queue, queues } from "@/lib/queue";
 import { type AiTask, aiTasks, setSetting } from "./settings";
 
 export type ActionState = { message?: string; error?: string };
@@ -90,4 +92,20 @@ export async function sourcesAction(_: ActionState, form: FormData): Promise<Act
   revalidatePath("/admin");
   revalidatePath("/targets");
   return result.ok ? { message: "Saved." } : { error: "Those values are not valid." };
+}
+
+export async function runTimeAction(_: ActionState, form: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const result = await setSetting("dailyRunTime", String(form.get("dailyRunTime") ?? ""));
+  revalidatePath("/admin");
+  return result.ok ? { message: "Saved." } : { error: "Use a 24-hour time like 05:00." };
+}
+
+export async function runNowAction(_: ActionState): Promise<ActionState> {
+  await requireAdmin();
+  const result = await startManualRun();
+  if (!result.started) return { error: "A run is already going. Check back when it finishes." };
+  await (await queue()).send(queues.dailyRun, { runId: result.runId });
+  revalidatePath("/admin");
+  return { message: "Started. Refresh in a few minutes to see results." };
 }

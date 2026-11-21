@@ -57,6 +57,13 @@
       "when": 1795248999794,
       "tag": "0007_watched-companies",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795249977892,
+      "tag": "0008_daily-runs",
+      "breakpoints": true
     }
   ]
 }

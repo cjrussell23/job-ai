@@ -5,11 +5,20 @@ import { log } from "@/lib/log";
 /** Queue names. Every job the worker runs is listed here. */
 export const queues = {
   heartbeat: "heartbeat",
+  dailyRunCheck: "daily-run-check",
+  dailyRun: "daily-run",
   parseResume: "parse-resume",
   proposeSearchTitles: "propose-search-titles",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];
+
+/** Per-queue settings; the rest use pg-boss defaults. */
+const queueOptions: Partial<Record<QueueName, { expireInSeconds?: number; retryLimit?: number }>> =
+  {
+    // A daily run can take hours and must not be retried into a second run.
+    [queues.dailyRun]: { expireInSeconds: 4 * 60 * 60, retryLimit: 0 },
+  };
 
 let boss: PgBoss | undefined;
 let starting: Promise<PgBoss> | undefined;
@@ -22,7 +31,7 @@ export function queue(): Promise<PgBoss> {
     instance.on("error", (error: unknown) => log.error({ err: error }, "queue error"));
     await instance.start();
     for (const name of Object.values(queues)) {
-      await instance.createQueue(name);
+      await instance.createQueue(name, queueOptions[name] ?? {});
     }
     boss = instance;
     return instance;
