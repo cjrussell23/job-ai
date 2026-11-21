@@ -11,6 +11,7 @@ export type FeedItem = {
   best: JobMatch & { targetName: string; combined: number | null };
   /** Other targets this job also matched. */
   otherTargets: string[];
+  otherTargetIds: string[];
 };
 
 /**
@@ -54,7 +55,12 @@ export async function feedForUser(userId: string, targetFitWeight: number): Prom
     const sorted = jobMatchList.sort((a, b) => (b.combined ?? -1) - (a.combined ?? -1));
     const [best, ...others] = sorted;
     if (!best) continue;
-    items.push({ job, best, otherTargets: others.map((o) => o.targetName) });
+    items.push({
+      job,
+      best,
+      otherTargets: others.map((o) => o.targetName),
+      otherTargetIds: others.map((o) => o.targetId),
+    });
   }
   // Scored jobs first by combined score, then unscored ones, newest first.
   return items.sort(
