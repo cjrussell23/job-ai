@@ -9,6 +9,9 @@ export const itemFields: Record<
     organization?: string;
     dates?: boolean;
     content?: string;
+    alternateTitles?: string;
+    shortContent?: string;
+    url?: string;
   }
 > = {
   role: {
@@ -17,6 +20,7 @@ export const itemFields: Record<
     organization: "Employer",
     dates: true,
     content: "Summary (optional)",
+    alternateTitles: "Other titles for this job (one per line, optional)",
   },
   project: {
     label: "Project",
@@ -24,6 +28,7 @@ export const itemFields: Record<
     organization: "For (optional)",
     dates: true,
     content: "Description",
+    url: "Link (optional)",
   },
   skill: { label: "Skill", title: "Skill" },
   certification: {
@@ -34,10 +39,20 @@ export const itemFields: Record<
   },
   story: { label: "Story", title: "Title", content: "What happened, and what you did" },
   note: { label: "Note", content: "Note" },
-  bullet: { label: "Bullet", content: "Bullet" },
+  bullet: {
+    label: "Bullet",
+    content: "Bullet",
+    shortContent: "Short version (optional, for tight resumes)",
+  },
+  summary: {
+    label: "Summary",
+    title: "Name (only you see it)",
+    content: "A two or three sentence summary for the top of a resume",
+  },
 };
 
 export const sectionOrder: { type: Exclude<ItemType, "bullet">; heading: string }[] = [
+  { type: "summary", heading: "Summaries" },
   { type: "role", heading: "Roles" },
   { type: "project", heading: "Projects" },
   { type: "skill", heading: "Skills" },

@@ -24,6 +24,8 @@ export const resumeEntrySchema = z.object({
   title: z.string(),
   subtitle: z.string(),
   dates: z.string(),
+  /** A web link printed with the entry, e.g. a project's live site. */
+  url: z.string().optional(),
   lines: z.array(lineSchema),
 });
 export type ResumeEntry = z.infer<typeof resumeEntrySchema>;
@@ -42,10 +44,14 @@ export const resumeBodySchema = z.object({
     z.object({
       id: z.string().min(1),
       heading: z.string().min(1),
+      /** Consecutive entries with the same employer may print under one heading. */
+      groupable: z.boolean().optional(),
       entries: z.array(resumeEntrySchema),
     }),
   ),
   skills: z.array(lineSchema),
+  /** A renamed skills heading; absent means "Skills". */
+  skillsHeading: z.string().optional(),
   /** Where the skills block sits among the sections; absent means after them all. */
   skillsAt: z.number().int().min(0).optional(),
 });

@@ -19,6 +19,7 @@ export const profileItemType = pgEnum("profile_item_type", [
   "certification",
   "story",
   "note",
+  "summary",
 ]);
 
 /**
@@ -56,6 +57,12 @@ export const profileItems = pgTable(
     /** Employer, client or issuing body. */
     organization: text("organization").notNull().default(""),
     content: text("content").notNull().default(""),
+    /** Bullets: an optional shorter wording of the same fact, for tight resumes. */
+    shortContent: text("short_content").notNull().default(""),
+    /** Roles: other honest titles for the same job, e.g. an official and a descriptive one. */
+    alternateTitles: text("alternate_titles").array().notNull().default([]),
+    /** Projects: a link printed with the project, e.g. the live site. */
+    url: text("url").notNull().default(""),
     /** Free-form dates as written, e.g. "2021-03" or "Spring 2019". */
     startDate: text("start_date").notNull().default(""),
     endDate: text("end_date").notNull().default(""),

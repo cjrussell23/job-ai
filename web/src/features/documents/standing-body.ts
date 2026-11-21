@@ -11,6 +11,9 @@ export type BuildableItem = Pick<
   | "title"
   | "organization"
   | "content"
+  | "shortContent"
+  | "alternateTitles"
+  | "url"
   | "startDate"
   | "endDate"
   | "visibility"
@@ -41,8 +44,34 @@ const ownWords = (text: string, sources: string[]): Line => ({
   origin: "profile",
 });
 
+/** Items in the member's order for this resume, then profile order for the rest. */
+export function inResumeOrder<T extends { id: string }>(items: T[], itemOrder: string[]): T[] {
+  const rank = new Map(itemOrder.map((id, i) => [id, i]));
+  return items
+    .map((item, i) => ({ item, i }))
+    .sort(
+      (a, b) =>
+        (rank.get(a.item.id) ?? Number.MAX_SAFE_INTEGER) -
+          (rank.get(b.item.id) ?? Number.MAX_SAFE_INTEGER) || a.i - b.i,
+    )
+    .map((x) => x.item);
+}
+
+/** The title a role shows: the chosen one if it is one of the role's own titles. */
+export function titleFor(item: BuildableItem, layout: Layout): string {
+  const chosen = layout.titles[item.id];
+  return chosen && (chosen === item.title || item.alternateTitles.includes(chosen))
+    ? chosen
+    : item.title;
+}
+
+/** A bullet's wording: its short version when the member chose it and one exists. */
+export function bulletText(item: BuildableItem, layout: Layout): string {
+  return layout.short.includes(item.id) && item.shortContent ? item.shortContent : item.content;
+}
+
 /**
- * A standing resume from the items the member picked, in profile order. Every line is
+ * A standing resume from the items the member picked, in the member's order. Every line is
  * an item's own words, so its sources are exact (rule 1). A bullet shows only under a
  * picked role or project.
  */
@@ -52,20 +81,24 @@ export function buildStandingBody(
   header: { name: string; contact: string; links: { label: string; url: string }[] },
   layout: Layout = defaultLayout,
 ): ResumeBody {
-  const usable = resumeItems(items).filter((i) => picked.has(i.id));
+  const usable = inResumeOrder(
+    resumeItems(items).filter((i) => picked.has(i.id)),
+    layout.itemOrder,
+  );
   const bulletsOf = (parentId: string) =>
     usable
       .filter((i) => i.type === "bullet" && i.parentId === parentId && i.content)
-      .map((b) => ownWords(b.content, [b.id]));
+      .map((b) => ownWords(bulletText(b, layout), [b.id]));
   const employers = new Set(
     items.filter((i) => i.type === "role" && i.organization).map((i) => norm(i.organization)),
   );
   const entry = (item: BuildableItem) => ({
     id: newId("e"),
     itemId: item.id,
-    title: item.title,
+    title: item.type === "role" ? titleFor(item, layout) : item.title,
     subtitle: item.organization,
-    dates: dates(item),
+    dates: layout.showDates ? dates(item) : "",
+    ...(item.url ? { url: item.url } : {}),
     lines: item.type === "certification" ? [] : bulletsOf(item.id),
   });
   const ofKey: Record<Exclude<SectionKey, "skills">, (i: BuildableItem) => boolean> = {
@@ -82,15 +115,26 @@ export function buildStandingBody(
       continue;
     }
     const entries = usable.filter(ofKey[key]).map(entry);
-    if (entries.length > 0) sections.push({ id: newId("s"), heading: sectionLabels[key], entries });
+    if (entries.length > 0) {
+      sections.push({
+        id: newId("s"),
+        heading: layout.headings[key] || sectionLabels[key],
+        ...(key === "experience" ? { groupable: true } : {}),
+        entries,
+      });
+    }
   }
   const skills = usable.filter((i) => i.type === "skill" && i.title);
+  // The summary is chosen in the layout, not by the checkboxes.
+  const summary = resumeItems(items).find(
+    (i) => i.id === layout.summaryId && i.type === "summary" && i.content,
+  );
   return resumeBodySchema.parse({
     kind: "resume",
     name: header.name,
     contact: header.contact,
     links: header.links,
-    summary: [],
+    summary: summary ? [ownWords(summary.content, [summary.id])] : [],
     sections,
     skills: skills.length
       ? [
@@ -100,6 +144,7 @@ export function buildStandingBody(
           ),
         ]
       : [],
+    ...(layout.headings.skills ? { skillsHeading: layout.headings.skills } : {}),
     // After the last section is the renderer's default, so it is left unset there.
     ...(skillsAt !== undefined && skillsAt < sections.length ? { skillsAt } : {}),
   });

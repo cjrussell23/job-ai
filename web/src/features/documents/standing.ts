@@ -63,6 +63,9 @@ export async function saveStandingResume(
         name: name.data,
         body,
         layout: layout.data,
+        // Saving by hand also settles a resume whose automatic pick failed.
+        state: "approved",
+        failure: null,
         version: sql`${documents.version} + 1`,
         updatedAt: sql`now()`,
         approvedAt: sql`now()`,
@@ -94,4 +97,40 @@ export async function deleteStandingResume(userId: string, id: string): Promise<
     .where(and(eq(documents.id, id), eq(documents.userId, userId), eq(documents.standing, true)))
     .returning({ id: documents.id });
   return deleted.length > 0;
+}
+
+/** A copy of a standing resume under a new name, to start a variant from. */
+export async function duplicateStandingResume(userId: string, id: string): Promise<StandingResult> {
+  const original = await getStandingResume(userId, id);
+  if (!original?.body) return { ok: false, reason: "not_found" };
+  const [created] = await db()
+    .insert(documents)
+    .values({
+      userId,
+      kind: "resume",
+      standing: true,
+      name: `Copy of ${original.name}`.slice(0, 100),
+      body: original.body,
+      layout: original.layout,
+      state: "approved",
+      approvedAt: new Date(),
+    })
+    .returning({ id: documents.id });
+  if (!created) throw new Error("standing resume copy returned no row");
+  return { ok: true, id: created.id };
+}
+
+/** Renders the picked items to a real PDF and counts its pages, for an exact answer. */
+export async function exactPageCount(
+  userId: string,
+  itemIds: string[],
+  rawLayout: unknown,
+): Promise<number | null> {
+  const layout = layoutSchema.safeParse(rawLayout);
+  if (!layout.success) return null;
+  const body = await bodyFor(userId, itemIds, layout.data);
+  if (!body) return null;
+  const { htmlToPdf, pdfPageCount } = await import("./pdf");
+  const { renderResume } = await import("./render");
+  return pdfPageCount(await htmlToPdf(renderResume(body, { layout: layout.data })));
 }

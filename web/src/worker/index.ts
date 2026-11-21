@@ -2,6 +2,7 @@ import { z } from "zod";
 import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
 import { generateDocument } from "@/features/documents/generate";
+import { pickForTarget } from "@/features/documents/pick";
 import { learnPreferencesForAll } from "@/features/feedback/learn";
 import { notifyNewMatches } from "@/features/notifications/notify";
 import { parseUpload } from "@/features/profile/parse-upload";
@@ -101,6 +102,15 @@ async function main() {
       const { userId, reviewId } = reviewJob.parse(job.data);
       log.info({ reviewId }, "reviewing profile");
       await runReview(userId, reviewId);
+    }
+  });
+
+  const pickJob = z.object({ userId: z.string(), documentId: z.uuid(), targetId: z.uuid() });
+  await boss.work(queues.pickResumeItems, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, documentId, targetId } = pickJob.parse(job.data);
+      log.info({ documentId }, "picking resume items");
+      await pickForTarget(userId, documentId, targetId);
     }
   });
 

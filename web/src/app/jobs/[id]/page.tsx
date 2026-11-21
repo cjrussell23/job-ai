@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
+import { RefreshWhile } from "@/components/refresh-while";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import { DocumentEditor } from "@/features/documents/components/document-editor"
 import { type Document, documentsForJob } from "@/features/documents/documents";
 import { jobsWithPostings, payText } from "@/features/jobs/jobs";
 import { requireMember } from "@/features/members/session";
-import { RefreshWhile } from "@/features/profile/components/refresh-while";
 import { ReviewPanel } from "@/features/profile/components/review-panel";
 import { sourceLabel } from "@/features/sources/catalogue";
 

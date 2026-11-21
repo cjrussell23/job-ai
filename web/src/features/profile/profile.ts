@@ -14,6 +14,7 @@ export const itemTypes = [
   "certification",
   "story",
   "note",
+  "summary",
 ] as const;
 export type ItemType = (typeof itemTypes)[number];
 export const parentTypes: ItemType[] = ["role", "project"];
@@ -24,6 +25,16 @@ export const itemInputSchema = z.object({
   title: z.string().trim().max(300).default(""),
   organization: z.string().trim().max(300).default(""),
   content: z.string().trim().max(10_000).default(""),
+  shortContent: z.string().trim().max(2000).default(""),
+  alternateTitles: z.array(z.string().trim().min(1).max(300)).max(5).default([]),
+  url: z
+    .string()
+    .trim()
+    .max(300)
+    .default("")
+    // "mysite.com" is stored as a full address so the printed link works.
+    .transform((u) => (u === "" || /^https?:\/\//i.test(u) ? u : `https://${u}`))
+    .pipe(z.union([z.literal(""), z.url({ protocol: /^https?$/ })])),
   startDate: z.string().trim().max(50).default(""),
   endDate: z.string().trim().max(50).default(""),
   tags: z.array(z.string().trim().min(1).max(50)).max(30).default([]),
@@ -91,6 +102,9 @@ export const itemPatchSchema = itemInputSchema
     title: true,
     organization: true,
     content: true,
+    shortContent: true,
+    alternateTitles: true,
+    url: true,
     startDate: true,
     endDate: true,
     tags: true,

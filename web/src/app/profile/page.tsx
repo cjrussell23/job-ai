@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
+import { RefreshWhile } from "@/components/refresh-while";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { memberHeader } from "@/features/members/members";
@@ -7,7 +8,6 @@ import { requireMember } from "@/features/members/session";
 import { ContactForm } from "@/features/profile/components/contact-form";
 import { ItemCard } from "@/features/profile/components/item-card";
 import { ItemForm } from "@/features/profile/components/item-form";
-import { RefreshWhile } from "@/features/profile/components/refresh-while";
 import { ReviewPanel } from "@/features/profile/components/review-panel";
 import { UploadForm } from "@/features/profile/components/upload-form";
 import { getContact } from "@/features/profile/contact";

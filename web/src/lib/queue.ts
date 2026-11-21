@@ -12,6 +12,7 @@ export const queues = {
   rescore: "rescore",
   draftDocument: "draft-document",
   reviewProfile: "review-profile",
+  pickResumeItems: "pick-resume-items",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];

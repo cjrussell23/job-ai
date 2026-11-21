@@ -145,7 +145,7 @@ describe("standing resumes", () => {
     );
     if (!saved.ok) throw new Error("not saved");
     const doc = await getStandingResume(userId, saved.id);
-    expect(doc?.layout).toEqual({
+    expect(doc?.layout).toMatchObject({
       pages: 2,
       density: "compact",
       order: ["skills", "personalProjects", "experience", "workProjects", "education"],

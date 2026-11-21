@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,22 +9,34 @@ import {
   bulletAdvice,
   bulletCountAdvice,
   bulletRange,
+  bulletStrength,
+  entryStrength,
+  type FitCandidate,
+  fitSuggestions,
   pageAdvice,
   skillsAdvice,
+  yearOfDate,
 } from "@/features/documents/guidance";
 import {
-  type Density,
   densities,
   densityLabels,
   type Layout,
   type SectionKey,
   sectionLabels,
+  templateLabels,
+  templates,
 } from "@/features/documents/layout";
 import { renderResume } from "@/features/documents/render";
-import { type BuilderState, saveStandingResumeAction } from "@/features/documents/standing-actions";
+import {
+  type BuilderState,
+  exactPagesAction,
+  saveStandingResumeAction,
+} from "@/features/documents/standing-actions";
 import {
   type BuildableItem,
   buildStandingBody,
+  bulletText,
+  inResumeOrder,
   isWorkProject,
 } from "@/features/documents/standing-body";
 import { ResumePreview } from "./resume-preview";
@@ -43,24 +55,65 @@ type Props = {
 const norm = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
 const dates = (i: BuildableItem) => [i.startDate, i.endDate].filter(Boolean).join(" – ");
 
-function AdviceText({ advice }: { advice: Advice | null }) {
-  if (!advice) return null;
+function AdviceList({ advice }: { advice: (Advice | null)[] }) {
+  const shown = advice.filter((a): a is Advice => a !== null);
+  if (shown.length === 0) return null;
   return (
-    <span
-      className={
-        advice.status === "warn"
-          ? "text-xs text-amber-700 dark:text-amber-400"
-          : "text-xs text-muted-foreground"
-      }
-    >
-      {advice.message}
+    <span className="flex flex-col">
+      {shown.map((a) => (
+        <span
+          key={a.message}
+          className={
+            a.status === "warn"
+              ? "text-xs text-amber-700 dark:text-amber-400"
+              : "text-xs text-muted-foreground"
+          }
+        >
+          {a.message}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function MoveButtons(props: {
+  label: string;
+  first: boolean;
+  last: boolean;
+  onMove: (by: -1 | 1) => void;
+}) {
+  return (
+    <span className="ml-auto flex shrink-0">
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="size-6"
+        disabled={props.first}
+        onClick={() => props.onMove(-1)}
+        aria-label={`Move ${props.label} up`}
+      >
+        <ArrowUp className="size-3.5" />
+      </Button>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="size-6"
+        disabled={props.last}
+        onClick={() => props.onMove(1)}
+        aria-label={`Move ${props.label} down`}
+      >
+        <ArrowDown className="size-3.5" />
+      </Button>
     </span>
   );
 }
 
 /**
  * Picks profile items for a standing resume and lays it out, with a live preview.
- * Wording is changed in the profile, not here (rule 1).
+ * Wording only ever comes from the profile (rule 1): a role's title is one of its own
+ * titles, and a bullet is its full or short version.
  */
 export function ResumeBuilder(props: Props) {
   const { items } = props;
@@ -70,9 +123,18 @@ export function ResumeBuilder(props: Props) {
   );
   const [chosen, setChosen] = useState(() => new Set(props.picked));
   const [layout, setLayout] = useState<Layout>(props.layout);
-  const [pages, setPages] = useState(1);
+  const [measure, setMeasure] = useState({ pages: 1, overflowLines: 0 });
+  const [exact, setExact] = useState<string | null>(null);
+  const [checking, startCheck] = useTransition();
+  const now = useMemo(() => new Date(), []);
 
-  const toggle = (itemId: string, on: boolean) =>
+  const update = (patch: Partial<Layout>) => {
+    setExact(null);
+    setLayout((current) => ({ ...current, ...patch }));
+  };
+
+  const toggle = (itemId: string, on: boolean) => {
+    setExact(null);
     setChosen((current) => {
       const next = new Set(current);
       if (on) next.add(itemId);
@@ -84,14 +146,25 @@ export function ResumeBuilder(props: Props) {
       }
       return next;
     });
+  };
 
-  const move = (index: number, by: -1 | 1) =>
-    setLayout((current) => {
-      const order = [...current.order];
-      const [key] = order.splice(index, 1);
-      if (key) order.splice(index + by, 0, key);
-      return { ...current, order };
-    });
+  const ordered = (list: BuildableItem[]) => inResumeOrder(list, layout.itemOrder);
+
+  /** Moves one item among its siblings for this resume only; the profile order is untouched. */
+  const moveItem = (siblings: BuildableItem[], index: number, by: -1 | 1) => {
+    const ids = siblings.map((s) => s.id);
+    const [id] = ids.splice(index, 1);
+    if (!id) return;
+    ids.splice(index + by, 0, id);
+    update({ itemOrder: [...ids, ...layout.itemOrder.filter((x) => !ids.includes(x))] });
+  };
+
+  const moveSection = (index: number, by: -1 | 1) => {
+    const order = [...layout.order];
+    const [key] = order.splice(index, 1);
+    if (key) order.splice(index + by, 0, key);
+    update({ order });
+  };
 
   const employers = useMemo(
     () => new Set(items.filter((i) => i.type === "role").map((i) => norm(i.organization))),
@@ -99,12 +172,15 @@ export function ResumeBuilder(props: Props) {
   );
   const roles = items.filter((i) => i.type === "role");
   const topFor: Record<Exclude<SectionKey, "skills">, BuildableItem[]> = {
-    experience: roles,
-    workProjects: items.filter((i) => i.type === "project" && isWorkProject(i, employers)),
-    personalProjects: items.filter((i) => i.type === "project" && !isWorkProject(i, employers)),
-    education: items.filter((i) => i.type === "certification"),
+    experience: ordered(roles),
+    workProjects: ordered(items.filter((i) => i.type === "project" && isWorkProject(i, employers))),
+    personalProjects: ordered(
+      items.filter((i) => i.type === "project" && !isWorkProject(i, employers)),
+    ),
+    education: ordered(items.filter((i) => i.type === "certification")),
   };
-  const skills = items.filter((i) => i.type === "skill");
+  const skills = ordered(items.filter((i) => i.type === "skill"));
+  const summaries = items.filter((i) => i.type === "summary");
   const pickedSkills = skills.filter((s) => chosen.has(s.id)).length;
 
   const html = useMemo(
@@ -116,8 +192,47 @@ export function ResumeBuilder(props: Props) {
     [items, chosen, props.header, layout],
   );
 
+  // Bullets that could go to bring the resume back to its target length.
+  const fit = useMemo(() => {
+    if (measure.overflowLines <= 0) return [];
+    const candidates: FitCandidate[] = [];
+    for (const parent of items.filter((i) => chosen.has(i.id))) {
+      if (parent.type !== "role" && parent.type !== "project") continue;
+      const bullets = items.filter((b) => b.parentId === parent.id && chosen.has(b.id));
+      const range = bulletRange(
+        {
+          type: parent.type,
+          startDate: parent.startDate,
+          endDate: parent.endDate,
+          rank: roles.indexOf(parent),
+        },
+        now,
+      );
+      const ended = yearOfDate(parent.endDate, now) ?? yearOfDate(parent.startDate, now);
+      for (const b of bullets) {
+        candidates.push({
+          id: b.id,
+          text: bulletText(b, layout),
+          excess: Math.max(0, bullets.length - range.max),
+          age: ended === null ? 0 : now.getFullYear() - ended,
+        });
+      }
+    }
+    return fitSuggestions(candidates, measure.overflowLines);
+  }, [measure.overflowLines, items, chosen, layout, roles, now]);
+
+  const checkExact = () =>
+    startCheck(async () => {
+      const result = await exactPagesAction([...chosen], layout);
+      setExact(
+        "pages" in result
+          ? `The PDF is exactly ${result.pages} page${result.pages === 1 ? "" : "s"}.`
+          : result.error,
+      );
+    });
+
   const box = (item: BuildableItem, disabled = false) => (
-    <label className="flex items-start gap-2">
+    <label className="flex min-w-0 items-start gap-2">
       <input
         type="checkbox"
         name="item"
@@ -127,63 +242,139 @@ export function ResumeBuilder(props: Props) {
         onChange={(event) => toggle(item.id, event.currentTarget.checked)}
         className="mt-1"
       />
-      <span className="flex flex-col">
-        <span>
-          <span className={item.type === "bullet" ? "" : "font-medium"}>
-            {item.type === "bullet" ? item.content : item.title || "(untitled)"}
-          </span>
-          {item.type !== "bullet" && (
-            <span className="text-muted-foreground">
-              {" "}
-              · {[item.organization, dates(item)].filter(Boolean).join(", ")}
-            </span>
-          )}
-          {item.visibility === "always" && (
-            <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-              always include
-            </span>
-          )}
+      <span className="min-w-0">
+        <span className={item.type === "bullet" ? "" : "font-medium"}>
+          {item.type === "bullet" ? bulletText(item, layout) : item.title || "(untitled)"}
         </span>
-        {item.type === "bullet" && chosen.has(item.id) && (
-          <AdviceText advice={bulletAdvice(item.content)} />
+        {item.type !== "bullet" && item.type !== "skill" && (
+          <span className="text-muted-foreground">
+            {" "}
+            · {[item.organization, dates(item)].filter(Boolean).join(", ")}
+          </span>
+        )}
+        {item.visibility === "always" && (
+          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+            always include
+          </span>
         )}
       </span>
     </label>
   );
 
-  const entry = (item: BuildableItem) => {
-    const bullets = items.filter((b) => b.parentId === item.id);
-    const pickedBullets = bullets.filter((b) => chosen.has(b.id)).length;
-    const advice =
-      chosen.has(item.id) && (item.type === "role" || item.type === "project")
-        ? bulletCountAdvice(
-            pickedBullets,
-            bulletRange({
-              type: item.type,
-              startDate: item.startDate,
-              endDate: item.endDate,
-              rank: roles.indexOf(item),
-            }),
-          )
-        : null;
+  const bulletRow = (
+    bullet: BuildableItem,
+    parent: BuildableItem,
+    siblings: BuildableItem[],
+    index: number,
+  ) => {
+    const on = chosen.has(bullet.id);
+    const isShort = layout.short.includes(bullet.id);
     return (
-      <div key={item.id} className="flex flex-col gap-1">
-        {box(item)}
-        {advice && (
-          <div className="pl-6">
-            <AdviceText advice={advice} />
+      <div key={bullet.id} className="flex flex-col gap-0.5 pl-6">
+        <div className="flex items-start gap-1">
+          {box(bullet, !chosen.has(parent.id))}
+          <MoveButtons
+            label="bullet"
+            first={index === 0}
+            last={index === siblings.length - 1}
+            onMove={(by) => moveItem(siblings, index, by)}
+          />
+        </div>
+        {on && (
+          <div className="flex flex-col gap-0.5 pl-6">
+            {bullet.shortContent && (
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={isShort}
+                  onChange={(e) =>
+                    update({
+                      short: e.currentTarget.checked
+                        ? [...layout.short, bullet.id]
+                        : layout.short.filter((x) => x !== bullet.id),
+                    })
+                  }
+                />
+                Use the short version
+              </label>
+            )}
+            <AdviceList
+              advice={[
+                bulletAdvice(bulletText(bullet, layout)),
+                ...bulletStrength(bulletText(bullet, layout)),
+              ]}
+            />
           </div>
         )}
-        {bullets.map((bullet) => (
-          <div key={bullet.id} className="pl-6">
-            {box(bullet, !chosen.has(item.id))}
-          </div>
-        ))}
       </div>
     );
   };
 
-  const pageCheck = pageAdvice(pages, layout.pages);
+  const entry = (item: BuildableItem, siblings: BuildableItem[], index: number) => {
+    const bullets = ordered(items.filter((b) => b.parentId === item.id));
+    const picked = bullets.filter((b) => chosen.has(b.id));
+    const on = chosen.has(item.id);
+    const isEntry = item.type === "role" || item.type === "project";
+    const titles = [item.title, ...item.alternateTitles];
+    return (
+      <div key={item.id} className="flex flex-col gap-1 rounded-md border p-2">
+        <div className="flex items-start gap-1">
+          {box(item)}
+          <MoveButtons
+            label={item.title}
+            first={index === 0}
+            last={index === siblings.length - 1}
+            onMove={(by) => moveItem(siblings, index, by)}
+          />
+        </div>
+        {on && item.type === "role" && item.alternateTitles.length > 0 && (
+          <div className="flex items-center gap-2 pl-6 text-xs">
+            <label htmlFor={`title-${item.id}`} className="text-muted-foreground">
+              Title shown
+            </label>
+            <select
+              id={`title-${item.id}`}
+              value={layout.titles[item.id] ?? item.title}
+              onChange={(e) =>
+                update({ titles: { ...layout.titles, [item.id]: e.currentTarget.value } })
+              }
+              className="h-7 rounded-md border bg-background px-1"
+            >
+              {titles.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {on && isEntry && (
+          <div className="pl-6">
+            <AdviceList
+              advice={[
+                bulletCountAdvice(
+                  picked.length,
+                  bulletRange(
+                    {
+                      type: item.type as "role" | "project",
+                      startDate: item.startDate,
+                      endDate: item.endDate,
+                      rank: roles.indexOf(item),
+                    },
+                    now,
+                  ),
+                ),
+                ...entryStrength(picked.map((b) => bulletText(b, layout))),
+              ]}
+            />
+          </div>
+        )}
+        {bullets.map((b, i) => bulletRow(b, item, bullets, i))}
+      </div>
+    );
+  };
+
+  const pageCheck = pageAdvice(measure.pages, layout.pages);
 
   return (
     <form action={action} className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -201,94 +392,158 @@ export function ResumeBuilder(props: Props) {
             defaultValue={props.name}
             required
             maxLength={100}
-            placeholder="e.g. Data roles"
+            placeholder="e.g. Developer roles"
           />
         </div>
 
         <fieldset className="flex flex-col gap-4 rounded-lg border p-4 text-sm">
           <legend className="px-1 text-sm font-semibold">Layout</legend>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="resume-pages" className="font-medium">
-              Length
-            </label>
-            <select
-              id="resume-pages"
-              value={layout.pages}
-              onChange={(e) =>
-                setLayout({ ...layout, pages: Number(e.currentTarget.value) as Layout["pages"] })
-              }
-              className="h-9 w-40 rounded-md border bg-background px-2"
-            >
-              {[1, 2, 3].map((n) => (
-                <option key={n} value={n}>
-                  {n} page{n === 1 ? "" : "s"}
-                </option>
-              ))}
-            </select>
-            <span className="text-xs text-muted-foreground">
-              With about {props.yearsOfExperience} years of experience, {props.recommendedPages}{" "}
-              page{props.recommendedPages === 1 ? " is" : "s are"} typical. Two pages are fine for
-              senior roles when every line earns its place.
-            </span>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="resume-pages" className="font-medium">
+                Length
+              </label>
+              <select
+                id="resume-pages"
+                value={layout.pages}
+                onChange={(e) =>
+                  update({ pages: Number(e.currentTarget.value) as Layout["pages"] })
+                }
+                className="h-9 rounded-md border bg-background px-2"
+              >
+                {[1, 2, 3].map((n) => (
+                  <option key={n} value={n}>
+                    {n} page{n === 1 ? "" : "s"}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="resume-template" className="font-medium">
+                Template
+              </label>
+              <select
+                id="resume-template"
+                value={layout.template}
+                onChange={(e) => update({ template: e.currentTarget.value as Layout["template"] })}
+                className="h-9 rounded-md border bg-background px-2"
+              >
+                {templates.map((t) => (
+                  <option key={t} value={t}>
+                    {templateLabels[t]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+          <span className="text-xs text-muted-foreground">
+            With about {props.yearsOfExperience} years of experience, {props.recommendedPages} page
+            {props.recommendedPages === 1 ? " is" : "s are"} typical. Two pages are fine for senior
+            roles when every line earns its place.
+          </span>
           <div className="flex flex-col gap-1">
             <span className="font-medium">Spacing</span>
-            <div className="flex gap-4">
-              {densities.map((d: Density) => (
+            <div className="flex flex-wrap gap-4">
+              {densities.map((d) => (
                 <label key={d} className="flex items-center gap-1.5">
                   <input
                     type="radio"
                     name="density-choice"
                     checked={layout.density === d}
-                    onChange={() => setLayout({ ...layout, density: d })}
+                    onChange={() => update({ density: d })}
                   />
                   {densityLabels[d]}
                 </label>
               ))}
             </div>
           </div>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={layout.groupRoles}
+                onChange={(e) => update({ groupRoles: e.currentTarget.checked })}
+              />
+              Group titles at the same employer
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={layout.showDates}
+                onChange={(e) => update({ showDates: e.currentTarget.checked })}
+              />
+              Show dates
+            </label>
+          </div>
           <div className="flex flex-col gap-1">
-            <span className="font-medium">Section order</span>
+            <span className="font-medium">Sections</span>
+            <span className="text-xs text-muted-foreground">
+              Reorder them, or rename a heading for this resume.
+            </span>
             <ol className="flex flex-col gap-1">
               {layout.order.map((key, index) => (
                 <li key={key} className="flex items-center gap-2">
                   <span className="w-5 text-muted-foreground">{index + 1}.</span>
-                  <span className="flex-1">{sectionLabels[key]}</span>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    disabled={index === 0}
-                    onClick={() => move(index, -1)}
-                    aria-label={`Move ${sectionLabels[key]} up`}
-                  >
-                    <ArrowUp className="size-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="size-7"
-                    disabled={index === layout.order.length - 1}
-                    onClick={() => move(index, 1)}
-                    aria-label={`Move ${sectionLabels[key]} down`}
-                  >
-                    <ArrowDown className="size-4" />
-                  </Button>
+                  <Input
+                    value={layout.headings[key] ?? ""}
+                    placeholder={sectionLabels[key]}
+                    aria-label={`Heading for ${sectionLabels[key]}`}
+                    maxLength={60}
+                    onChange={(e) =>
+                      update({ headings: { ...layout.headings, [key]: e.currentTarget.value } })
+                    }
+                    className="h-8"
+                  />
+                  <MoveButtons
+                    label={sectionLabels[key]}
+                    first={index === 0}
+                    last={index === layout.order.length - 1}
+                    onMove={(by) => moveSection(index, by)}
+                  />
                 </li>
               ))}
             </ol>
           </div>
         </fieldset>
 
+        {summaries.length > 0 && (
+          <fieldset className="flex flex-col gap-2 text-sm">
+            <legend className="mb-1 text-sm font-semibold">Summary</legend>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="summary-choice"
+                checked={layout.summaryId === null}
+                onChange={() => update({ summaryId: null })}
+              />
+              No summary
+            </label>
+            {summaries.map((s) => (
+              <label key={s.id} className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name="summary-choice"
+                  className="mt-1"
+                  checked={layout.summaryId === s.id}
+                  onChange={() => update({ summaryId: s.id })}
+                />
+                <span>
+                  <span className="font-medium">{s.title || "Summary"}</span>
+                  <span className="block text-muted-foreground">{s.content}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+
         {layout.order.map((key) => {
+          const heading = layout.headings[key] || sectionLabels[key];
           if (key === "skills") {
             if (skills.length === 0) return null;
             return (
               <fieldset key={key} className="flex flex-col gap-2 text-sm">
-                <legend className="mb-1 text-sm font-semibold">{sectionLabels.skills}</legend>
-                <AdviceText advice={skillsAdvice(pickedSkills)} />
+                <legend className="mb-1 text-sm font-semibold">{heading}</legend>
+                <AdviceList advice={[skillsAdvice(pickedSkills)]} />
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
                   {skills.map((s) => (
                     <div key={s.id}>{box(s)}</div>
@@ -300,20 +555,28 @@ export function ResumeBuilder(props: Props) {
           const top = topFor[key];
           if (top.length === 0) return null;
           return (
-            <fieldset key={key} className="flex flex-col gap-3 text-sm">
-              <legend className="mb-1 text-sm font-semibold">{sectionLabels[key]}</legend>
-              {top.map(entry)}
+            <fieldset key={key} className="flex flex-col gap-2 text-sm">
+              <legend className="mb-1 text-sm font-semibold">{heading}</legend>
+              {top.map((item, i) => entry(item, top, i))}
             </fieldset>
           );
         })}
       </div>
 
-      <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
+      <div className="flex flex-col gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={pending}>
             {props.id ? "Save resume" : "Create resume"}
           </Button>
-          <AdviceText advice={pageCheck} />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={checkExact}
+            disabled={checking}
+          >
+            {checking ? "Checking…" : "Check exact pages"}
+          </Button>
           {state.error && (
             <p role="alert" className="text-sm text-destructive">
               {state.error}
@@ -321,10 +584,38 @@ export function ResumeBuilder(props: Props) {
           )}
           {state.message && <p className="text-sm text-muted-foreground">{state.message}</p>}
         </div>
-        <ResumePreview html={html} layout={layout} onPages={setPages} />
+        <AdviceList advice={[pageCheck, exact ? { status: "good", message: exact } : null]} />
+        {fit.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/40">
+            <p className="font-medium">
+              To fit {layout.pages === 1 ? "one page" : `${layout.pages} pages`}, drop these:
+            </p>
+            <ul className="flex list-disc flex-col gap-1 pl-5 text-xs">
+              {fit.map((c) => (
+                <li key={c.id}>{c.text}</li>
+              ))}
+            </ul>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="self-start"
+              onClick={() => {
+                setExact(null);
+                setChosen((current) => {
+                  const next = new Set(current);
+                  for (const c of fit) next.delete(c.id);
+                  return next;
+                });
+              }}
+            >
+              Drop these {fit.length}
+            </Button>
+          </div>
+        )}
+        <ResumePreview html={html} layout={layout} onMeasure={setMeasure} />
         <p className="text-xs text-muted-foreground">
-          Page breaks are estimated; the PDF keeps each entry whole, so a break can land a little
-          earlier.
+          Page breaks are estimated; use "Check exact pages" for the real PDF.
         </p>
       </div>
     </form>

@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
+import { RefreshWhile } from "@/components/refresh-while";
 import { SiteHeader } from "@/components/site-header";
 import { getSettings } from "@/features/admin/settings";
 import { PreferencesCard } from "@/features/feedback/components/preferences-card";
 import { listPreferences } from "@/features/feedback/feedback";
 import { requireMember } from "@/features/members/session";
-import { RefreshWhile } from "@/features/profile/components/refresh-while";
 import { marketForTargets } from "@/features/scoring/market";
 import { SourceList } from "@/features/sources/components/source-list";
 import { TargetCard } from "@/features/targets/components/target-card";

@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireMember } from "@/features/members/session";
-import { deleteStandingResume, saveStandingResume } from "./standing";
+import { startPickForTarget } from "./pick";
+import {
+  deleteStandingResume,
+  duplicateStandingResume,
+  exactPageCount,
+  saveStandingResume,
+} from "./standing";
 
 export type BuilderState = { error?: string; message?: string };
 
@@ -48,4 +54,34 @@ export async function deleteStandingResumeAction(form: FormData): Promise<void> 
   if (id.success) await deleteStandingResume(userId, id.data);
   revalidatePath("/resumes");
   redirect("/resumes");
+}
+
+export async function duplicateStandingResumeAction(form: FormData): Promise<void> {
+  const { userId } = await requireMember();
+  const id = z.uuid().safeParse(form.get("id"));
+  if (!id.success) redirect("/resumes");
+  const result = await duplicateStandingResume(userId, id.data);
+  revalidatePath("/resumes");
+  redirect(result.ok ? `/resumes/${result.id}` : "/resumes");
+}
+
+/** The exact page count of the resume as currently picked, from a real PDF render. */
+export async function exactPagesAction(
+  itemIds: string[],
+  layout: unknown,
+): Promise<{ pages: number } | { error: string }> {
+  const { userId } = await requireMember();
+  const ids = z.array(z.uuid()).max(1000).safeParse(itemIds);
+  if (!ids.success) return { error: "Reload the page and try again." };
+  const pages = await exactPageCount(userId, ids.data, layout);
+  return pages === null ? { error: "Pick something first." } : { pages };
+}
+
+export async function pickForTargetAction(form: FormData): Promise<void> {
+  const { userId } = await requireMember();
+  const targetId = z.uuid().safeParse(form.get("targetId"));
+  if (!targetId.success) redirect("/resumes");
+  const result = await startPickForTarget(userId, targetId.data);
+  revalidatePath("/resumes");
+  redirect(result.ok ? `/resumes/${result.id}` : "/resumes");
 }
