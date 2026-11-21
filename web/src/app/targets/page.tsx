@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
 import { getSettings } from "@/features/admin/settings";
+import { PreferencesCard } from "@/features/feedback/components/preferences-card";
+import { listPreferences } from "@/features/feedback/feedback";
 import { requireMember } from "@/features/members/session";
 import { RefreshWhile } from "@/features/profile/components/refresh-while";
 import { SourceList } from "@/features/sources/components/source-list";
@@ -11,7 +13,11 @@ import { listTargets } from "@/features/targets/targets";
 
 async function Targets() {
   const { userId, name, member } = await requireMember();
-  const [targets, settings] = await Promise.all([listTargets(userId), getSettings()]);
+  const [targets, settings, preferences] = await Promise.all([
+    listTargets(userId),
+    getSettings(),
+    listPreferences(userId),
+  ]);
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
@@ -32,6 +38,7 @@ async function Targets() {
         {targets.map((target) => (
           <TargetCard key={target.id} target={target} />
         ))}
+        <PreferencesCard preferences={preferences} />
         <details className="rounded-lg border border-dashed p-4" open={targets.length === 0}>
           <summary className="cursor-pointer text-sm font-medium">Add a job target</summary>
           <div className="mt-4">

@@ -16,7 +16,7 @@ export function RescoreBanner({ status }: { status: RescoreStatus }) {
       ? "your profile and job targets"
       : status.staleProfile > 0
         ? "your profile"
-        : "your job targets";
+        : "your job targets or preferences";
   const left = Math.max(0, status.limitPerDay - status.usedToday);
 
   return (

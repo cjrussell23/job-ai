@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
+import { TargetPromptBanner } from "@/features/feedback/components/target-prompt-banner";
+import { gradesByJob, targetChangePrompts } from "@/features/feedback/feedback";
 import { requireMember } from "@/features/members/session";
 import { FeedCard } from "@/features/scoring/components/feed-card";
 import { FeedFilters } from "@/features/scoring/components/feed-filters";
@@ -14,12 +16,19 @@ import { listTargets } from "@/features/targets/targets";
 
 async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   const { userId, name, member } = await requireMember();
-  const [items, rescore, targets, params] = await Promise.all([
+  const [items, rescore, targets, params, grades, prompts] = await Promise.all([
     feedForUser(userId, member.targetFitWeight),
     rescoreStatus(userId),
     listTargets(userId),
     searchParams,
+    gradesByJob(userId),
+    targetChangePrompts(userId),
   ]);
+  const targetName = new Map(targets.map((t) => [t.id, t.roleType]));
+  const openPrompts = prompts.filter((p) => {
+    const target = targets.find((t) => t.id === p.targetId);
+    return target && !(p.reason === "pay" ? target.payIsFirm : target.locationIsFirm);
+  });
   const view = parseFeedView(params);
   const shown = applyFeedView(items, view);
   const sources = [...new Set(items.flatMap((i) => i.job.postings.map((p) => p.source)))].map(
@@ -38,6 +47,14 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
           </p>
         </div>
         <RescoreBanner status={rescore} />
+        {openPrompts.map((p) => (
+          <TargetPromptBanner
+            key={`${p.targetId}-${p.reason}`}
+            reason={p.reason}
+            count={p.count}
+            targetName={targetName.get(p.targetId) ?? "a job target"}
+          />
+        ))}
         {items.length === 0 ? (
           <p className="rounded-lg border p-6 text-muted-foreground">
             No matches yet. Build your{" "}
@@ -65,7 +82,16 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
               </p>
             )}
             {shown.map((item) => (
-              <FeedCard key={item.job.id} item={item} />
+              <FeedCard
+                key={item.job.id}
+                item={item}
+                grade={(() => {
+                  const g = grades.get(item.job.id);
+                  return g && (g.kind === "up" || g.kind === "down")
+                    ? { kind: g.kind, reason: g.reason }
+                    : null;
+                })()}
+              />
             ))}
           </>
         )}

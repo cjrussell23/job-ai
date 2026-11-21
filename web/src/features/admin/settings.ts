@@ -17,6 +17,7 @@ const settingsSchema = z.object({
       scoreTargetFit: z.string().min(1).default(scoringModel),
       scoreProfileFit: z.string().min(1).default(scoringModel),
       estimatePay: z.string().min(1).default(scoringModel),
+      learnPreferences: z.string().min(1).default(scoringModel),
       draftCoverLetter: z.string().min(1).default(writingModel),
       tailorResume: z.string().min(1).default(writingModel),
     })

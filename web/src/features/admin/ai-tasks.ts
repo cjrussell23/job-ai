@@ -7,6 +7,7 @@ export const aiTasks = [
   "scoreTargetFit",
   "scoreProfileFit",
   "estimatePay",
+  "learnPreferences",
   "draftCoverLetter",
   "tailorResume",
 ] as const;
@@ -18,6 +19,7 @@ export const aiTaskLabels: Record<AiTask, string> = {
   scoreTargetFit: "Score target fit",
   scoreProfileFit: "Score profile fit",
   estimatePay: "Estimate pay",
+  learnPreferences: "Learn preferences from feedback",
   draftCoverLetter: "Draft a cover letter",
   tailorResume: "Tailor a resume",
 };

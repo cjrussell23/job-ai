@@ -148,3 +148,9 @@ export async function membersWithDiscord(): Promise<Member[]> {
   const rows = await db().select().from(members).where(eq(members.state, "active"));
   return rows.filter((m) => m.discordUserId && m.userId);
 }
+
+/** Active members, for after-run work such as learning preferences. */
+export async function membersWithFeedback(): Promise<Member[]> {
+  const rows = await db().select().from(members).where(eq(members.state, "active"));
+  return rows.filter((m) => m.userId);
+}

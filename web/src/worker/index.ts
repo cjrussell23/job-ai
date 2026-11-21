@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
+import { learnPreferencesForAll } from "@/features/feedback/learn";
 import { notifyNewMatches } from "@/features/notifications/notify";
 import { parseUpload } from "@/features/profile/parse-upload";
 import { executeRun, startScheduledRunIfDue } from "@/features/runs/daily-run";

@@ -35,7 +35,13 @@ async function staleMatches(userId: string): Promise<StaleMatch[]> {
   const profileChangedAt = member?.profileChangedAt ?? null;
   return matches.flatMap((match) => {
     if (!open.has(match.jobId)) return [];
-    const changedAt = targetChanged.get(match.targetId) ?? null;
+    // Learned preferences feed target fit, so a change to them makes it stale too.
+    const targetChangedAt = targetChanged.get(match.targetId) ?? null;
+    const preferencesChangedAt = member?.preferencesChangedAt ?? null;
+    const changedAt =
+      targetChangedAt && preferencesChangedAt
+        ? new Date(Math.max(targetChangedAt.getTime(), preferencesChangedAt.getTime()))
+        : (targetChangedAt ?? preferencesChangedAt);
     const profile = Boolean(
       profileChangedAt && match.profileScoredAt && match.profileScoredAt < profileChangedAt,
     );

@@ -24,6 +24,10 @@ export const members = pgTable("members", {
   spendCapCents: integer("spend_cap_cents"),
   /** The member's Discord user id, for daily match messages. Null means no messages. */
   discordUserId: text("discord_user_id"),
+  /** Last change to the member's learned preferences, which feed target fit. */
+  preferencesChangedAt: timestamp("preferences_changed_at", { withTimezone: true }),
+  /** When feedback was last summarized into learned preferences. */
+  preferencesLearnedAt: timestamp("preferences_learned_at", { withTimezone: true }),
   /** Last change to the master profile that can affect profile fit. */
   profileChangedAt: timestamp("profile_changed_at", { withTimezone: true }),
   invitedAt: timestamp("invited_at", { withTimezone: true }).notNull().defaultNow(),

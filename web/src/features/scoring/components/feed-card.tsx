@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { GradeButtons } from "@/features/feedback/components/grade-buttons";
 import type { Job } from "@/features/jobs/jobs";
 import { appTimeZone } from "@/features/runs/time";
 import { dismissJobAction, splitPostingAction } from "@/features/scoring/actions";
@@ -68,7 +69,9 @@ const workplaceLabels = {
   unknown: null,
 } as const;
 
-export function FeedCard({ item }: { item: FeedItem }) {
+type CardProps = { item: FeedItem; grade: { kind: "up" | "down"; reason: string | null } | null };
+
+export function FeedCard({ item, grade }: CardProps) {
   const { job, best, otherTargets } = item;
   const workplace = workplaceLabels[job.remote];
   return (
@@ -151,12 +154,21 @@ export function FeedCard({ item }: { item: FeedItem }) {
             {job.description || "No description."}
           </p>
         </details>
-        <form action={dismissJobAction}>
-          <input type="hidden" name="jobId" value={job.id} />
-          <Button type="submit" variant="ghost" size="sm">
-            Dismiss
-          </Button>
-        </form>
+        <div className="flex items-center gap-2">
+          <GradeButtons
+            jobId={job.id}
+            targetId={best.targetId}
+            grade={grade?.kind ?? null}
+            reason={grade?.reason ?? null}
+          />
+          <form action={dismissJobAction}>
+            <input type="hidden" name="jobId" value={job.id} />
+            <input type="hidden" name="targetId" value={best.targetId} />
+            <Button type="submit" variant="ghost" size="sm">
+              Dismiss
+            </Button>
+          </form>
+        </div>
       </footer>
     </article>
   );
