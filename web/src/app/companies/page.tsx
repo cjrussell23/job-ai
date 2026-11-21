@@ -5,15 +5,23 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireMember } from "@/features/members/session";
-import { removeCompanyAction } from "@/features/sources/actions";
+import {
+  findBoardsAction,
+  removeCompanyAction,
+  watchSuggestedAction,
+} from "@/features/sources/actions";
+import { suggestedCompaniesFor } from "@/features/sources/company-suggestions";
 import { AddCompanyForm } from "@/features/sources/components/add-company-form";
 import { listWatchedCompanies } from "@/features/sources/watched-companies";
 
 const systemLabels = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby" } as const;
 
 async function Companies() {
-  const { name, member } = await requireMember();
-  const companies = await listWatchedCompanies();
+  const { userId, name, member } = await requireMember();
+  const [companies, suggestions] = await Promise.all([
+    listWatchedCompanies(),
+    suggestedCompaniesFor(userId),
+  ]);
   const isAdmin = member.role === "admin";
   return (
     <>
@@ -27,6 +35,51 @@ async function Companies() {
             automatically when a job posting links to their board.
           </p>
         </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Suggested from your matches</CardTitle>
+            <CardDescription>
+              Companies in your matches whose own Greenhouse, Lever or Ashby board was found.
+              Watching one reads every job on its board each morning, including ones the job sites
+              miss. Check the board link first: the match is by name.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {suggestions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                None yet. Boards are looked for after each morning's run.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y rounded-lg border">
+                {suggestions.map((s) => (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium">{s.companyName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {s.yourMatches} of your matches · {s.openJobs ?? 0} open jobs on{" "}
+                        <a href={s.url} target="_blank" rel="noreferrer" className="underline">
+                          {s.system ? systemLabels[s.system] : "its board"}
+                        </a>
+                      </span>
+                    </div>
+                    <form action={watchSuggestedAction}>
+                      <input type="hidden" name="url" value={s.url} />
+                      <input type="hidden" name="name" value={s.companyName} />
+                      <Button type="submit" size="sm" variant="outline">
+                        Watch
+                      </Button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form action={findBoardsAction}>
+              <Button type="submit" size="sm" variant="ghost">
+                Look for more now
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Watch a company</CardTitle>

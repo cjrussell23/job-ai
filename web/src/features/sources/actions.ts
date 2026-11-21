@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin, requireMember } from "@/features/members/session";
+import { queue, queues } from "@/lib/queue";
 import { addWatchedCompany, removeWatchedCompany } from "./watched-companies";
 
 export type FormState = { error?: string; message?: string };
@@ -30,5 +31,28 @@ export async function addCompanyAction(_: FormState, form: FormData): Promise<Fo
 export async function removeCompanyAction(form: FormData): Promise<void> {
   await requireAdmin();
   await removeWatchedCompany(z.uuid().parse(form.get("id")));
+  revalidatePath("/companies");
+}
+
+/** Watches a suggested company; its board was already found, so this is the same as adding it. */
+export async function watchSuggestedAction(form: FormData): Promise<void> {
+  const { userId } = await requireMember();
+  const url = z.url().safeParse(form.get("url"));
+  if (!url.success) return;
+  await addWatchedCompany(url.data, {
+    addedByUserId: userId,
+    name: String(form.get("name") ?? ""),
+  });
+  revalidatePath("/companies");
+}
+
+/** Asks the worker to look for more companies' boards now, instead of after the next run. */
+export async function findBoardsAction(): Promise<void> {
+  await requireMember();
+  await (await queue()).send(
+    queues.checkCompanyBoards,
+    {},
+    { singletonKey: "check-company-boards" },
+  );
   revalidatePath("/companies");
 }
