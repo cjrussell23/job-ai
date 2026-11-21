@@ -4,16 +4,28 @@ import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
 import { requireMember } from "@/features/members/session";
 import { FeedCard } from "@/features/scoring/components/feed-card";
+import { FeedFilters } from "@/features/scoring/components/feed-filters";
 import { RescoreBanner } from "@/features/scoring/components/rescore-banner";
 import { feedForUser } from "@/features/scoring/feed";
+import { applyFeedView, parseFeedView } from "@/features/scoring/feed-view";
 import { rescoreStatus } from "@/features/scoring/rescore";
+import { sourceLabel } from "@/features/sources/catalogue";
+import { listTargets } from "@/features/targets/targets";
 
-async function Feed() {
+async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   const { userId, name, member } = await requireMember();
-  const [items, rescore] = await Promise.all([
+  const [items, rescore, targets, params] = await Promise.all([
     feedForUser(userId, member.targetFitWeight),
     rescoreStatus(userId),
+    listTargets(userId),
+    searchParams,
   ]);
+  const view = parseFeedView(params);
+  const shown = applyFeedView(items, view);
+  const sources = [...new Set(items.flatMap((i) => i.job.postings.map((p) => p.source)))].map(
+    (id) => ({ value: id, label: sourceLabel(id) }),
+  );
+
   return (
     <>
       <SiteHeader name={name} isAdmin={member.role === "admin"} />
@@ -39,17 +51,33 @@ async function Feed() {
             ; matches appear after the next daily run.
           </p>
         ) : (
-          items.map((item) => <FeedCard key={item.job.id} item={item} />)
+          <>
+            <FeedFilters
+              view={view}
+              targets={targets.map((t) => ({ value: t.id, label: t.roleType }))}
+              sources={sources}
+              shown={shown.length}
+              total={items.length}
+            />
+            {shown.length === 0 && (
+              <p className="rounded-lg border p-6 text-muted-foreground">
+                No jobs match these filters.
+              </p>
+            )}
+            {shown.map((item) => (
+              <FeedCard key={item.job.id} item={item} />
+            ))}
+          </>
         )}
       </main>
     </>
   );
 }
 
-export default function HomePage() {
+export default function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <Suspense fallback={<PageLoading />}>
-      <Feed />
+      <Feed searchParams={searchParams} />
     </Suspense>
   );
 }
