@@ -5,6 +5,7 @@ import { log } from "@/lib/log";
 /** Queue names. Every job the worker runs is listed here. */
 export const queues = {
   heartbeat: "heartbeat",
+  parseResume: "parse-resume",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];
