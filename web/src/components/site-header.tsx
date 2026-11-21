@@ -17,6 +17,9 @@ export function SiteHeader({ name, isAdmin }: Props) {
           <Link href="/profile" className="hover:text-foreground">
             Profile
           </Link>
+          <Link href="/resumes" className="hover:text-foreground">
+            Resumes
+          </Link>
           <Link href="/targets" className="hover:text-foreground">
             Job targets
           </Link>
