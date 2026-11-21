@@ -17,7 +17,12 @@ import {
 } from "@/features/admin/actions";
 import type { Member } from "@/features/members/members";
 
-type Props = { members: Member[]; defaultSpendCapCents: number };
+type Props = {
+  members: Member[];
+  defaultSpendCapCents: number;
+  /** AI spend this month in dollars, keyed by user id. */
+  spendByUser: Map<string, number>;
+};
 
 const stateLabels: Record<Member["state"], string> = {
   invited: "Invited",
@@ -25,13 +30,14 @@ const stateLabels: Record<Member["state"], string> = {
   suspended: "Suspended",
 };
 
-export function MembersTable({ members, defaultSpendCapCents }: Props) {
+export function MembersTable({ members, defaultSpendCapCents, spendByUser }: Props) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Google address</TableHead>
           <TableHead>State</TableHead>
+          <TableHead>Spent this month</TableHead>
           <TableHead>Monthly cap ($)</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
@@ -51,6 +57,9 @@ export function MembersTable({ members, defaultSpendCapCents }: Props) {
               <Badge variant={member.state === "suspended" ? "destructive" : "outline"}>
                 {stateLabels[member.state]}
               </Badge>
+            </TableCell>
+            <TableCell className="tabular-nums">
+              ${(member.userId ? (spendByUser.get(member.userId) ?? 0) : 0).toFixed(2)}
             </TableCell>
             <TableCell>
               <form action={spendCapAction} className="flex gap-2">

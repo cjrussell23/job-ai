@@ -16,11 +16,16 @@ const authEnvSchema = z.object({
   ADMIN_EMAIL: z.email().transform((email) => email.toLowerCase()),
 });
 
+const aiEnvSchema = z.object({
+  ANTHROPIC_API_KEY: z.string().min(1),
+});
+
 export type Env = z.infer<typeof envSchema>;
 export type AuthEnv = z.infer<typeof authEnvSchema>;
 
 let cached: Env | undefined;
 let cachedAuth: AuthEnv | undefined;
+let cachedAi: z.infer<typeof aiEnvSchema> | undefined;
 
 function parse<T extends z.ZodType>(schema: T): z.infer<T> {
   const result = schema.safeParse(process.env);
@@ -41,4 +46,10 @@ export function env(): Env {
 export function authEnv(): AuthEnv {
   cachedAuth ??= parse(authEnvSchema);
   return cachedAuth;
+}
+
+/** Model provider settings, read only when a model is actually called. */
+export function aiEnv(): z.infer<typeof aiEnvSchema> {
+  cachedAi ??= parse(aiEnvSchema);
+  return cachedAi;
 }

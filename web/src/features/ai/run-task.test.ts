@@ -1,0 +1,109 @@
+import { afterAll, afterEach, beforeEach, expect, test } from "vitest";
+import { z } from "zod";
+import { closeDb, db } from "@/db/client";
+import { aiUsage } from "@/db/schema";
+import { setSetting } from "@/features/admin/settings";
+import { resetDb } from "@/test/db";
+import { useFakeModel } from "@/test/fake-model";
+import { createMember } from "@/test/fixtures";
+import { runTask } from "./run-task";
+import type { TaskDefinition } from "./task";
+
+const echoTask: TaskDefinition<{ text: string }, { words: string[] }> = {
+  name: "proposeSearchTitles",
+  promptVersion: "test-1",
+  schema: z.object({ words: z.array(z.string()) }),
+  allowedPastCap: false,
+  maxOutputTokens: 200,
+  buildPrompt: ({ text }) => ({ system: "Split into words.", prompt: text }),
+};
+
+let restore = () => {};
+beforeEach(resetDb);
+afterEach(() => restore());
+afterAll(closeDb);
+
+test("returns validated output and records usage and cost", async () => {
+  const userId = await createMember("a@example.com");
+  const fake = useFakeModel({ words: ["hello", "world"] });
+  restore = fake.restore;
+
+  const result = await runTask(userId, echoTask, { text: "hello world" });
+
+  expect(result).toEqual({ ok: true, output: { words: ["hello", "world"] } });
+  expect(fake.calls[0]?.modelId).toBe("claude-haiku-5-5");
+  const [usage] = await db().select().from(aiUsage);
+  expect(usage).toMatchObject({ userId, task: "proposeSearchTitles", promptVersion: "test-1" });
+  // 1,000 input and 500 output tokens on Haiku 5.5.
+  expect(usage?.costUsd).toBeCloseTo(0.00035, 8);
+});
+
+test("uses the model chosen in the admin settings", async () => {
+  const userId = await createMember("a@example.com");
+  await setSetting("models", {
+    parseResume: "claude-haiku-5-5",
+    proposeSearchTitles: "claude-sonnet-5-5",
+    scoreTargetFit: "claude-haiku-5-5",
+    scoreProfileFit: "claude-haiku-5-5",
+    estimatePay: "claude-haiku-5-5",
+    draftCoverLetter: "claude-sonnet-5-5",
+    tailorResume: "claude-sonnet-5-5",
+  });
+  const fake = useFakeModel({ words: [] });
+  restore = fake.restore;
+  await runTask(userId, echoTask, { text: "" });
+  expect(fake.calls[0]?.modelId).toBe("claude-sonnet-5-5");
+});
+
+test("output that fails the schema is refused but still counted", async () => {
+  const userId = await createMember("a@example.com");
+  const fake = useFakeModel({ words: "not an array" });
+  restore = fake.restore;
+
+  expect(await runTask(userId, echoTask, { text: "x" })).toEqual({
+    ok: false,
+    reason: "invalid_output",
+  });
+  expect(await db().select().from(aiUsage)).toHaveLength(1);
+});
+
+test("at the cap, optional tasks are refused without calling the model", async () => {
+  const userId = await createMember("a@example.com", 100);
+  await db().insert(aiUsage).values({
+    userId,
+    task: "draftCoverLetter",
+    model: "claude-sonnet-5-5",
+    promptVersion: "v1",
+    inputTokens: 1,
+    outputTokens: 1,
+    costUsd: 1.0,
+  });
+  const fake = useFakeModel({ words: [] });
+  restore = fake.restore;
+
+  expect(await runTask(userId, echoTask, { text: "x" })).toEqual({
+    ok: false,
+    reason: "cap_reached",
+  });
+  expect(fake.calls).toHaveLength(0);
+
+  const scoring = { ...echoTask, allowedPastCap: true };
+  expect((await runTask(userId, scoring, { text: "x" })).ok).toBe(true);
+});
+
+test("usage is counted per member", async () => {
+  const a = await createMember("a@example.com", 100);
+  const b = await createMember("b@example.com", 100);
+  await db().insert(aiUsage).values({
+    userId: a,
+    task: "draftCoverLetter",
+    model: "claude-sonnet-5-5",
+    promptVersion: "v1",
+    inputTokens: 1,
+    outputTokens: 1,
+    costUsd: 5,
+  });
+  const fake = useFakeModel({ words: [] });
+  restore = fake.restore;
+  expect((await runTask(b, echoTask, { text: "x" })).ok).toBe(true);
+});
