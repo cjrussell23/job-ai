@@ -183,6 +183,13 @@
       "when": 1795310971976,
       "tag": "0025_workday_boards",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795311532142,
+      "tag": "0026_public_resume_link",
+      "breakpoints": true
     }
   ]
 }

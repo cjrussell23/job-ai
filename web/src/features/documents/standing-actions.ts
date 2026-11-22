@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireMember } from "@/features/members/session";
 import { startFeedback } from "./feedback";
 import { startPickForTarget } from "./pick";
+import { shareStandingResume, unshareStandingResume } from "./public";
 import {
   deleteStandingResume,
   duplicateStandingResume,
@@ -93,4 +94,18 @@ export async function startFeedbackAction(form: FormData): Promise<void> {
   if (!id.success) return;
   await startFeedback(userId, id.data);
   revalidatePath(`/resumes/${id.data}`);
+}
+
+export async function shareStandingResumeAction(form: FormData): Promise<void> {
+  const { userId } = await requireMember();
+  const id = z.uuid().safeParse(form.get("id"));
+  if (id.success) await shareStandingResume(userId, id.data);
+  if (id.success) revalidatePath(`/resumes/${id.data}`);
+}
+
+export async function unshareStandingResumeAction(form: FormData): Promise<void> {
+  const { userId } = await requireMember();
+  const id = z.uuid().safeParse(form.get("id"));
+  if (id.success) await unshareStandingResume(userId, id.data);
+  if (id.success) revalidatePath(`/resumes/${id.data}`);
 }

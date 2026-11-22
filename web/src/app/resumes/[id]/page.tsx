@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { resumeBodySchema } from "@/features/documents/body";
 import { FeedbackPanel } from "@/features/documents/components/feedback-panel";
+import { PublicLink } from "@/features/documents/components/public-link";
 import { ResumeBuilder } from "@/features/documents/components/resume-builder";
 import { readFeedback } from "@/features/documents/feedback";
 import { recommendedPages, yearsOfExperience } from "@/features/documents/guidance";
@@ -119,6 +120,9 @@ async function Builder({ params }: { params: PageProps<"/resumes/[id]">["params"
             </div>
           )}
         </div>
+        {doc?.body != null && doc.state === "approved" && (
+          <PublicLink id={doc.id} token={doc.publicToken} />
+        )}
         {doc?.state === "failed" && (
           <p role="alert" className="text-sm text-destructive">
             {doc.failure} Pick the items yourself below and save.
