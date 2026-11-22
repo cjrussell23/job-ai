@@ -7,7 +7,7 @@ export type Fetcher = {
 };
 
 // Generic on purpose: nothing about the app's users goes to the sites it reads.
-const userAgent = "job-ai/0.1 (personal job search; low volume)";
+export const userAgent = "job-ai/0.1 (personal job search; low volume)";
 
 async function get(url: string): Promise<Response> {
   const response = await fetch(url, {
