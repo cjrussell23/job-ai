@@ -6,6 +6,7 @@ import { generateDocument } from "@/features/documents/generate";
 import { pickForTarget } from "@/features/documents/pick";
 import { learnPreferencesForAll } from "@/features/feedback/learn";
 import { runRating, runSet } from "@/features/interview/interview";
+import { describeMatchedCompanies, describeOne } from "@/features/jobs/company-profiles";
 import { notifyNewMatches } from "@/features/notifications/notify";
 import { parseUpload } from "@/features/profile/parse-upload";
 import { runReview } from "@/features/profile/review";
@@ -70,6 +71,10 @@ async function main() {
           }),
           ...(await scoreAfterRun()),
           notifications: await notifyNewMatches(),
+          companies: await describeMatchedCompanies().catch((err: unknown) => {
+            log.error({ err }, "describing companies failed");
+            return { described: 0, failed: 0 };
+          }),
           // Last: looks for job boards of companies in today's matches, to suggest watching.
           companyBoards: await checkCompanyBoards().catch((err: unknown) => {
             log.error({ err }, "checking company boards failed");
@@ -148,6 +153,11 @@ async function main() {
       const { userId, questionId } = ratingJob.parse(job.data);
       await runRating(userId, questionId);
     }
+  });
+
+  const companyJob = z.object({ company: z.string().min(1) });
+  await boss.work(queues.describeCompany, async (jobs) => {
+    for (const job of jobs) await describeOne(companyJob.parse(job.data).company);
   });
 
   log.info("worker started");

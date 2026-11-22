@@ -2,6 +2,7 @@ import {
   doublePrecision,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -190,3 +191,39 @@ export const companyBoardChecks = pgTable("company_board_checks", {
 });
 
 export type CompanyBoardCheck = typeof companyBoardChecks.$inferSelect;
+
+export type CompanyFacts = {
+  summary: string;
+  industry: string | null;
+  employees: string | null;
+  headquarters: string | null;
+  founded: string | null;
+  ownership: string | null;
+  website: string | null;
+  reviews: {
+    rating: number | null;
+    outOf: number | null;
+    site: string | null;
+    summary: string | null;
+  } | null;
+  notable: string[];
+  confidence: "low" | "medium" | "high";
+};
+
+/**
+ * An AI description of a company, written from a web search with its sources. Shared
+ * across members like jobs and companies; refreshed after a while.
+ */
+export const companyProfiles = pgTable("company_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** The company name normalized as for job identity. */
+  companyKey: text("company_key").notNull().unique(),
+  companyName: text("company_name").notNull(),
+  facts: jsonb("facts").$type<CompanyFacts>(),
+  /** Only links the web search really returned. */
+  sources: jsonb("sources").$type<{ title: string; url: string }[]>().notNull().default([]),
+  failure: text("failure"),
+  generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type CompanyProfile = typeof companyProfiles.$inferSelect;

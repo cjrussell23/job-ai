@@ -21,6 +21,15 @@ export function languageModel(modelId: string): LanguageModel {
   return factory(modelId);
 }
 
+/**
+ * The gateway's web search tool, or none while tests replace the model (a faked model
+ * can't run provider tools, and tests have no gateway key).
+ */
+export function webSearchTools() {
+  if (factory !== defaultFactory) return undefined;
+  return { webSearch: gateway().tools.perplexitySearch({ maxResults: 8, country: "CA" }) };
+}
+
 /** Replaces the real model, for tests. Returns a function that restores it. */
 export function setModelFactoryForTests(replacement: ModelFactory): () => void {
   factory = replacement;

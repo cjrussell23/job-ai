@@ -4,6 +4,8 @@ import { PageLoading } from "@/components/page-loading";
 import { SiteHeader } from "@/components/site-header";
 import { TargetPromptBanner } from "@/features/feedback/components/target-prompt-banner";
 import { gradesByJob, targetChangePrompts } from "@/features/feedback/feedback";
+import { profileOf, profilesFor } from "@/features/jobs/company-profiles";
+import { companyLine } from "@/features/jobs/components/company-card";
 import { requireMember } from "@/features/members/session";
 import { FeedCard } from "@/features/scoring/components/feed-card";
 import { FeedFilters } from "@/features/scoring/components/feed-filters";
@@ -32,10 +34,13 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
   });
   const view = parseFeedView(params);
   const shown = applyFeedView(items, view);
-  const summaries = await summariesFor(
-    userId,
-    shown.map((i) => i.job.id),
-  );
+  const [summaries, companies] = await Promise.all([
+    summariesFor(
+      userId,
+      shown.map((i) => i.job.id),
+    ),
+    profilesFor(shown.map((i) => i.job.company)),
+  ]);
   const sources = [...new Set(items.flatMap((i) => i.job.postings.map((p) => p.source)))].map(
     (id) => ({ value: id, label: sourceLabel(id) }),
   );
@@ -91,6 +96,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
                 key={item.job.id}
                 item={item}
                 summary={summaries.get(item.job.id)}
+                companyLine={companyLine(profileOf(companies, item.job.company))}
                 grade={(() => {
                   const g = grades.get(item.job.id);
                   return g && (g.kind === "up" || g.kind === "down")
