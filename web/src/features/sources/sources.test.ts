@@ -4,7 +4,9 @@ import { afterAll, beforeEach, describe, expect, test } from "vitest";
 import { closeDb } from "@/db/client";
 import { parsePlace } from "@/lib/places";
 import { resetDb } from "@/test/db";
+import { ahsLocation, createAhsSource, parseAhsListing, parseAhsPay, parseAhsSitemap } from "./ahs";
 import { createAlbertaSource, parseSitemap } from "./alberta";
+import { createCalgarySource, parseCareersList, parseCompensation } from "./calgary";
 import { createBoardSource, parseBoardUrl } from "./company-boards";
 import {
   createGcJobsSource,
@@ -304,6 +306,125 @@ describe("GC Jobs", () => {
     const source = createGcJobsSource(newSession, noPause);
     expect(await source.search({ title: "painter", location: "United States" })).toEqual([]);
     expect(await source.search({ title: "painter", location: "Nowhere, AB" })).toEqual([]);
+  });
+});
+
+describe("City of Calgary", () => {
+  test("reads titles and links from the careers list", () => {
+    const entries = parseCareersList(fixture("calgary-careers.html"));
+    expect(entries).toHaveLength(4);
+    expect(entries[2]?.title).toBe("Research & Development Analyst");
+    expect(entries[3]?.url).toContain("JobOpeningId=315654");
+  });
+
+  test("reads the compensation line, whose upper figure has no dollar sign", () => {
+    expect(parseCompensation("Compensation: Pay Grade 11 $46.21 - 61.78 per hour")).toEqual({
+      min: 46.21,
+      max: 61.78,
+      period: "hour",
+    });
+    expect(parseCompensation("Compensation: $85,000 - $95,000 annually")).toEqual({
+      min: 85000,
+      max: 95000,
+      period: "year",
+    });
+    expect(parseCompensation("Compensation: Pay Grade 11")).toBeNull();
+  });
+
+  test("fetches only matching postings and reads their pages", async () => {
+    const { fetcher, requested } = fakeFetcher([
+      [/careers\.html/, "calgary-careers.html"],
+      [/recruiting\.calgary\.ca/, "calgary-posting.html"],
+    ]);
+    const source = createCalgarySource(fetcher, noPause);
+    const raw = await source.search({ title: "Partnership Specialist", location: "Calgary, AB" });
+    const { postings, rejected } = parsePostings(raw);
+    expect(rejected).toBe(0);
+    expect(postings).toHaveLength(1);
+    expect(postings[0]).toMatchObject({
+      title: "Partnership Specialist",
+      company: "City of Calgary",
+      location: "Calgary, AB",
+      pay: { min: 46.21, max: 61.78, period: "hour" },
+      hoursPerWeek: 35,
+    });
+    expect(postings[0]?.description).toContain("Qualifications");
+    expect(requested.filter((u) => u.includes("recruiting"))).toHaveLength(1);
+    // A search elsewhere reads nothing at all.
+    expect(
+      await source.search({ title: "Partnership Specialist", location: "Edmonton, AB" }),
+    ).toEqual([]);
+    expect(requested.filter((u) => u.includes("careers.html"))).toHaveLength(1);
+  });
+});
+
+describe("Alberta Health Services and Recovery Alberta", () => {
+  const origin = "https://careers.albertahealthservices.ca";
+
+  test("reads listing pages from the site map, skipping retired ones", () => {
+    const pages = parseAhsSitemap(fixture("ahs-sitemap.html"), origin);
+    expect(pages).toContain(`${origin}/page/corporate-44`);
+    expect(pages.some((p) => p.includes("/landingpages/"))).toBe(true);
+    expect(pages.some((p) => p.includes("x-dnu"))).toBe(false);
+    expect(pages.some((p) => p.endsWith("/sitemap"))).toBe(false);
+  });
+
+  test("reads rows from a category page", () => {
+    const rows = parseAhsListing(fixture("ahs-category.html"), "Alberta Health Services");
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toEqual({
+      url: `${origin}/jobs/senior-analyst-604784`,
+      title: "Senior Analyst",
+      location: "Calgary, AB",
+      requisition: "ALB00591970",
+      company: "Alberta Health Services",
+    });
+    expect(ahsLocation("North Zone, Grande Prairie, Grande Prairie Virene Building")).toBe(
+      "Grande Prairie, AB",
+    );
+  });
+
+  test("reads pay, which states no period", () => {
+    expect(parseAhsPay("Minimum Salary: $68.56\nMaximum Salary: $80.20")).toEqual({
+      min: 68.56,
+      max: 80.2,
+      period: "hour",
+    });
+    expect(parseAhsPay("Minimum Salary: $95,000\nMaximum Salary: $120,000")).toEqual({
+      min: 95000,
+      max: 120000,
+      period: "year",
+    });
+    expect(parseAhsPay("No salary here")).toBeNull();
+  });
+
+  test("fetches only matching postings and reads their pages", async () => {
+    const { fetcher, requested } = fakeFetcher([
+      [/\/sitemap$/, "ahs-sitemap.html"],
+      [/\/jobs\//, "ahs-posting.html"],
+      [/\/(latest-jobs|page|landingpages|location)/, "ahs-category.html"],
+    ]);
+    const source = createAhsSource(fetcher, noPause);
+    const raw = await source.search({ title: "Analyst", location: "Calgary, AB" });
+    const { postings, rejected } = parsePostings(raw);
+    expect(rejected).toBe(0);
+    // The same rows appear on every listing page and both sites; each is fetched once.
+    expect(postings).toHaveLength(1);
+    expect(postings[0]).toMatchObject({
+      url: `${origin}/jobs/senior-analyst-604784`,
+      company: "Alberta Health Services",
+      pay: { min: 68.56, max: 80.2, period: "hour" },
+      hoursPerWeek: 39,
+    });
+    expect(postings[0]?.description).toContain("Minimum Salary");
+    expect(postings[0]?.postedAt).toBeInstanceOf(Date);
+    expect(requested.filter((u) => u.includes("/jobs/"))).toHaveLength(1);
+    const listingReads = requested.length;
+    // A second query in the same run reuses the listings.
+    await source.search({ title: "Project Manager", location: "Edmonton, AB" });
+    expect(requested.length - listingReads).toBe(1);
+    // A search outside Alberta reads nothing.
+    expect(await source.search({ title: "Analyst", location: "Toronto, ON" })).toEqual([]);
   });
 });
 

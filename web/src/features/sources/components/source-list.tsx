@@ -1,17 +1,17 @@
 import { Badge } from "@/components/ui/badge";
-import { sourceCatalogue } from "@/features/sources/catalogue";
+import { isComingSoon, sourceCatalogue } from "@/features/sources/catalogue";
 
 /** Where the daily search looks, for members. */
 export function SourceList({ enabled }: { enabled: Record<string, boolean> }) {
   return (
     <ul className="flex flex-wrap gap-2">
       {sourceCatalogue
-        .filter((s) => s.status === "coming_soon" || enabled[s.id] !== false)
+        .filter((s) => isComingSoon(s) || enabled[s.id] !== false)
         .map((source) => (
           <li key={source.id}>
-            <Badge variant={source.status === "available" ? "secondary" : "outline"}>
+            <Badge variant={isComingSoon(source) ? "outline" : "secondary"}>
               {source.label}
-              {source.status === "coming_soon" && " · coming soon"}
+              {isComingSoon(source) && " · coming soon"}
             </Badge>
           </li>
         ))}

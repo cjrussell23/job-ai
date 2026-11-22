@@ -1,4 +1,6 @@
+import { createAhsSource } from "./ahs";
 import { createAlbertaSource } from "./alberta";
+import { createCalgarySource } from "./calgary";
 import { createBoardSource } from "./company-boards";
 import { createGcJobsSource } from "./gcjobs";
 import { createJobBankSource } from "./jobbank";
@@ -13,6 +15,8 @@ export function registerAllSources() {
   registerSource("jobbank", createJobBankSource());
   registerSource("alberta", createAlbertaSource());
   registerSource("gcjobs", createGcJobsSource());
+  registerSource("calgary", createCalgarySource());
+  registerSource("ahs", createAhsSource());
   registerSource("greenhouse", createBoardSource("greenhouse"));
   registerSource("lever", createBoardSource("lever"));
   registerSource("ashby", createBoardSource("ashby"));

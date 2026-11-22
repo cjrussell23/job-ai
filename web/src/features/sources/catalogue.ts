@@ -10,9 +10,9 @@ export const sourceCatalogue = [
   { id: "greenhouse", label: "Greenhouse company boards", status: "available" },
   { id: "lever", label: "Lever company boards", status: "available" },
   { id: "ashby", label: "Ashby company boards", status: "available" },
-  { id: "ahs", label: "Alberta Health Services and Recovery Alberta", status: "coming_soon" },
+  { id: "ahs", label: "Alberta Health Services and Recovery Alberta", status: "available" },
   { id: "gcjobs", label: "GC Jobs (federal government)", status: "available" },
-  { id: "calgary", label: "City of Calgary", status: "coming_soon" },
+  { id: "calgary", label: "City of Calgary", status: "available" },
   { id: "workday", label: "Workday company boards", status: "available" },
 ] as const;
 
@@ -25,6 +25,14 @@ export type AvailableSourceId = Extract<
 export const availableSourceIds = sourceCatalogue
   .filter((s) => s.status === "available")
   .map((s) => s.id) as AvailableSourceId[];
+
+/**
+ * Whether a source is listed but not built yet. Takes a plain string so callers still
+ * compile while every listed source happens to be available.
+ */
+export function isComingSoon(source: { status: string }): boolean {
+  return source.status === "coming_soon";
+}
 
 export function sourceLabel(id: string): string {
   return sourceCatalogue.find((s) => s.id === id)?.label ?? id;
