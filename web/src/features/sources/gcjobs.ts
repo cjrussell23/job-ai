@@ -14,7 +14,11 @@ import type { ScrapedPosting, SearchQuery, SearchSource } from "./source";
 
 const host = "https://emploisfp-psjobs.cfp-psc.gc.ca";
 const searchPage = `${host}/psrs-srfp/applicant/page2440`;
-const maxPages = 3;
+/**
+ * Result pages read per search. Each result costs a posting-page request with a pause,
+ * and a run makes dozens of searches, so the default stays at the first 20 results.
+ */
+const defaultMaxPages = 1;
 // Sessions expire on the server after an hour of use or so; renew a little before.
 const sessionLifetimeMs = 50 * 60_000;
 
@@ -213,6 +217,7 @@ export const postingUrl = (posterId: string) =>
 export function createGcJobsSource(
   newSession: () => CookieSession = createCookieSession,
   pause = sleep,
+  maxPages = defaultMaxPages,
 ): SearchSource {
   let current: { http: CookieSession; id: string; at: number } | undefined;
   // Location codes don't change; look each place up once.
