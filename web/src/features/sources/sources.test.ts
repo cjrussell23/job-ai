@@ -267,7 +267,7 @@ describe("GC Jobs", () => {
         },
       };
     };
-    const source = createGcJobsSource(newSession, noPause);
+    const source = createGcJobsSource(newSession, noPause, 3);
     const raw = await source.search({ title: "painter", location: "Calgary, AB" });
     const { postings, rejected } = parsePostings(raw);
     expect(rejected).toBe(0);
@@ -303,7 +303,7 @@ describe("GC Jobs", () => {
       text: async (url: string) =>
         url.includes("fromMenu") ? "setNetworkAvailability('ABC123',true)" : "[]",
     });
-    const source = createGcJobsSource(newSession, noPause);
+    const source = createGcJobsSource(newSession, noPause, 3);
     expect(await source.search({ title: "painter", location: "United States" })).toEqual([]);
     expect(await source.search({ title: "painter", location: "Nowhere, AB" })).toEqual([]);
   });
