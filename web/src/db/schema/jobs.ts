@@ -120,7 +120,7 @@ export const scrapeRuns = pgTable(
 
 export type ScrapeRun = typeof scrapeRuns.$inferSelect;
 
-export const boardSystem = pgEnum("board_system", ["greenhouse", "lever", "ashby"]);
+export const boardSystem = pgEnum("board_system", ["greenhouse", "lever", "ashby", "workday"]);
 export const watchedCompanyOrigin = pgEnum("watched_company_origin", ["member", "discovered"]);
 
 /** A company whose public job board feed is read every run. Shared by all users. */

@@ -2,6 +2,8 @@
 export type Fetcher = {
   text: (url: string) => Promise<string>;
   json: (url: string) => Promise<unknown>;
+  /** A JSON POST, for career sites whose listing API takes a request body (Workday). */
+  postJson?: (url: string, body: unknown) => Promise<unknown>;
 };
 
 // Generic on purpose: nothing about the app's users goes to the sites it reads.
@@ -19,6 +21,20 @@ async function get(url: string): Promise<Response> {
 export const httpFetcher: Fetcher = {
   text: async (url) => (await get(url)).text(),
   json: async (url) => (await get(url)).json(),
+  postJson: async (url, body) => {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "user-agent": userAgent,
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) throw new Error(`${response.status} from ${new URL(url).host}`);
+    return response.json();
+  },
 };
 
 export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));

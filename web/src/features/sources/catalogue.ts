@@ -13,7 +13,7 @@ export const sourceCatalogue = [
   { id: "ahs", label: "Alberta Health Services and Recovery Alberta", status: "coming_soon" },
   { id: "gcjobs", label: "GC Jobs (federal government)", status: "coming_soon" },
   { id: "calgary", label: "City of Calgary", status: "coming_soon" },
-  { id: "workday", label: "Workday company boards", status: "coming_soon" },
+  { id: "workday", label: "Workday company boards", status: "available" },
 ] as const;
 
 export type SourceId = (typeof sourceCatalogue)[number]["id"];

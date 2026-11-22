@@ -10,7 +10,7 @@ export type FormState = { error?: string; message?: string };
 
 const messages = {
   not_a_board:
-    "That isn't a Greenhouse, Lever or Ashby job board link. Look for a link like boards.greenhouse.io/company, jobs.lever.co/company or jobs.ashbyhq.com/company on the company's careers page.",
+    "That isn't a Greenhouse, Lever, Ashby or Workday job board link. Look for a link like boards.greenhouse.io/company, jobs.lever.co/company, jobs.ashbyhq.com/company or company.wd3.myworkdayjobs.com/Careers on the company's careers page.",
   board_not_found: "That board couldn't be read. Check the link and try again.",
   already_watched: "That company is already watched.",
 } as const;

@@ -14,7 +14,12 @@ import { suggestedCompaniesFor } from "@/features/sources/company-suggestions";
 import { AddCompanyForm } from "@/features/sources/components/add-company-form";
 import { listWatchedCompanies } from "@/features/sources/watched-companies";
 
-const systemLabels = { greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby" } as const;
+const systemLabels = {
+  greenhouse: "Greenhouse",
+  lever: "Lever",
+  ashby: "Ashby",
+  workday: "Workday",
+} as const;
 
 async function Companies() {
   const { userId, name, member } = await requireMember();
@@ -84,8 +89,9 @@ async function Companies() {
           <CardHeader>
             <CardTitle>Watch a company</CardTitle>
             <CardDescription>
-              Paste the link to the company's Greenhouse, Lever or Ashby job board, usually found
-              from the jobs or careers page.
+              Paste the link to the company's Greenhouse, Lever, Ashby or Workday job board, usually
+              found from the jobs or careers page. Big Calgary employers on Workday include Cenovus,
+              Suncor, TC Energy and ENMAX.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -125,7 +125,11 @@ export async function runDaily(runId: string, deps: Deps = {}): Promise<RunSumma
           "",
           now(),
           async () => {
-            const rows = await source.listCompany({ boardId: company.boardId, name: company.name });
+            const rows = await source.listCompany({
+              boardId: company.boardId,
+              name: company.name,
+              titles,
+            });
             // Boards list every job; keep only those some member is looking for.
             return rows.filter((row) => {
               const title = (row as { title?: unknown }).title;
