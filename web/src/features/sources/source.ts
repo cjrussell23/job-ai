@@ -39,7 +39,15 @@ export type SearchSource = {
 /** A company's own career feed, listed in full and filtered locally (Greenhouse, Lever, Ashby). */
 export type CompanyFeedSource = {
   kind: "company-feed";
-  listCompany: (company: { boardId: string; name: string }) => Promise<unknown[]>;
+  /**
+   * Lists a company's jobs. `titles` lets sources that fetch each posting separately
+   * (Workday) skip ones nobody is looking for; others may ignore it.
+   */
+  listCompany: (company: {
+    boardId: string;
+    name: string;
+    titles?: string[];
+  }) => Promise<unknown[]>;
 };
 
 export type SourceImplementation = SearchSource | CompanyFeedSource;

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { type Fetcher, httpFetcher } from "./http";
 import { parsePayText } from "./pay-text";
 import type { CompanyFeedSource } from "./source";
+import { parseWorkdayUrl, workdayBoardId } from "./workday";
 
 /** Public, unauthenticated per-company job board feeds. */
 
@@ -150,10 +151,13 @@ export const boardFeedUrl = {
 
 const parsers = { greenhouse: parseGreenhouse, lever: parseLever, ashby: parseAshby };
 
-export type BoardSystem = keyof typeof parsers;
+/** Systems whose whole board is one public GET. */
+export type FeedSystem = keyof typeof parsers;
+/** Every company board system a company can be watched on. */
+export type BoardSystem = FeedSystem | "workday";
 
 export function createBoardSource(
-  system: BoardSystem,
+  system: FeedSystem,
   fetcher: Fetcher = httpFetcher,
 ): CompanyFeedSource {
   return {
@@ -187,5 +191,7 @@ export function parseBoardUrl(url: string): { system: BoardSystem; boardId: stri
   if (host === "jobs.lever.co" || host === "jobs.eu.lever.co")
     return { system: "lever", boardId: first };
   if (host === "jobs.ashbyhq.com") return { system: "ashby", boardId: first };
+  const workday = parseWorkdayUrl(url);
+  if (workday) return { system: "workday", boardId: workdayBoardId(workday) };
   return null;
 }

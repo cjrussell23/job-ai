@@ -9,8 +9,9 @@ import {
 } from "@/db/schema";
 import { normalizeCompany } from "@/features/jobs/identity";
 import { log } from "@/lib/log";
-import { type BoardSystem, boardFeedUrl } from "./company-boards";
+import { type BoardSystem, boardFeedUrl, type FeedSystem } from "./company-boards";
 import { type Fetcher, httpFetcher, sleep } from "./http";
+import { readWorkdayBoardId, workdayCareersUrl } from "./workday";
 
 /** Board ids worth trying for a company: "Bean Co" -> ["beanco", "bean-co"]. */
 export function slugCandidates(company: string): string[] {
@@ -26,12 +27,17 @@ export const boardUrl: Record<BoardSystem, (boardId: string) => string> = {
   greenhouse: (id) => `https://boards.greenhouse.io/${id}`,
   lever: (id) => `https://jobs.lever.co/${id}`,
   ashby: (id) => `https://jobs.ashbyhq.com/${id}`,
+  workday: (id) => {
+    const board = readWorkdayBoardId(id);
+    return board ? workdayCareersUrl(board) : "";
+  },
 };
 
-const systems: BoardSystem[] = ["greenhouse", "lever", "ashby"];
+// Workday site names can't be guessed from a company name, so it isn't probed.
+const systems: FeedSystem[] = ["greenhouse", "lever", "ashby"];
 
 /** How many jobs a board feed lists, and the company name Greenhouse gives, if any. */
-function readFeed(system: BoardSystem, data: unknown): { jobs: number; name: string | null } {
+function readFeed(system: FeedSystem, data: unknown): { jobs: number; name: string | null } {
   if (system === "lever") return { jobs: Array.isArray(data) ? data.length : 0, name: null };
   const list = (data as { jobs?: { company_name?: string }[] } | null)?.jobs ?? [];
   return { jobs: list.length, name: list[0]?.company_name ?? null };
@@ -45,7 +51,7 @@ export async function probeCompany(
   company: string,
   fetcher: Fetcher = httpFetcher,
   pause: (ms: number) => Promise<void> = sleep,
-): Promise<{ system: BoardSystem; boardId: string; openJobs: number } | null> {
+): Promise<{ system: FeedSystem; boardId: string; openJobs: number } | null> {
   const key = normalizeCompany(company);
   for (const slug of slugCandidates(company)) {
     for (const system of systems) {

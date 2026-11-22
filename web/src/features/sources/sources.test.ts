@@ -15,6 +15,7 @@ import {
   addWatchedCompany,
   listWatchedCompanies,
 } from "./watched-companies";
+import { createWorkdaySource, workdayLocation } from "./workday";
 
 const fixture = (name: string) =>
   readFileSync(fileURLToPath(new URL(`./__fixtures__/${name}`, import.meta.url)), "utf8");
@@ -245,5 +246,61 @@ describe("watched companies", () => {
     expect(added).toBe(1);
     const [company] = await listWatchedCompanies();
     expect(company).toMatchObject({ name: "Acme Labs", origin: "discovered" });
+  });
+});
+
+describe("Workday", () => {
+  test("careers links become board ids", () => {
+    expect(
+      parseBoardUrl("https://suncor.wd1.myworkdayjobs.com/en-US/Suncor_External/job/Welder_R1"),
+    ).toEqual({
+      system: "workday",
+      boardId: "suncor/wd1/Suncor_External",
+    });
+    expect(parseBoardUrl("https://cenovus.wd3.myworkdayjobs.com/careers")).toEqual({
+      system: "workday",
+      boardId: "cenovus/wd3/careers",
+    });
+    expect(workdayLocation("CA-AB-Calgary")).toBe("Calgary, AB");
+    expect(workdayLocation("Lloydminster (SK)")).toBe("Lloydminster, SK");
+    expect(workdayLocation("Calgary, AB, CAN")).toBe("Calgary, AB");
+  });
+
+  test("lists pages, fetches only postings with a wanted title, and reads their details", async () => {
+    const posted: { url: string; body: unknown }[] = [];
+    const requested: string[] = [];
+    const fetcher: Fetcher = {
+      text: async () => {
+        throw new Error("not used");
+      },
+      json: async (url) => {
+        requested.push(url);
+        return JSON.parse(fixture("workday-posting.json"));
+      },
+      postJson: async (url, body) => {
+        posted.push({ url, body });
+        return JSON.parse(fixture("workday-list.json"));
+      },
+    };
+    const raw = await createWorkdaySource(fetcher, noPause).listCompany({
+      boardId: "cenovus/wd3/careers",
+      name: "Cenovus Energy",
+      titles: ["Health Center Nurse"],
+    });
+    expect(posted[0]?.url).toBe(
+      "https://cenovus.wd3.myworkdayjobs.com/wday/cxs/cenovus/careers/jobs",
+    );
+    // The sample's total is 22, so a second page is read.
+    expect(posted).toHaveLength(2);
+    expect(requested.every((u) => u.includes("/wday/cxs/cenovus/careers/job/"))).toBe(true);
+    const { postings, rejected } = parsePostings(raw);
+    expect(rejected).toBe(0);
+    expect(postings.length).toBeGreaterThan(0);
+    expect(postings[0]).toMatchObject({
+      company: "Cenovus Energy",
+      location: "Lloydminster, SK",
+      title: "Senior Coordinator, OT SCADA",
+    });
+    expect(postings[0]?.postedAt?.toISOString().slice(0, 10)).toBe("2026-11-20");
   });
 });

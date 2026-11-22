@@ -3,6 +3,7 @@ import { createBoardSource } from "./company-boards";
 import { createJobBankSource } from "./jobbank";
 import { createJobSpySource } from "./jobspy";
 import { registerSource } from "./registry";
+import { createWorkdaySource } from "./workday";
 
 /** Registers every built source. Imported once by the worker. */
 export function registerAllSources() {
@@ -13,4 +14,5 @@ export function registerAllSources() {
   registerSource("greenhouse", createBoardSource("greenhouse"));
   registerSource("lever", createBoardSource("lever"));
   registerSource("ashby", createBoardSource("ashby"));
+  registerSource("workday", createWorkdaySource());
 }

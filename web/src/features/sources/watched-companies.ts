@@ -3,6 +3,7 @@ import { db } from "@/db/client";
 import { type WatchedCompany, watchedCompanies } from "@/db/schema";
 import { type BoardSystem, boardFeedUrl, parseBoardUrl } from "./company-boards";
 import { type Fetcher, httpFetcher } from "./http";
+import { readWorkdayBoardId, workdayBoardExists } from "./workday";
 
 export type { WatchedCompany };
 
@@ -27,6 +28,12 @@ async function boardName(
   boardId: string,
   fetcher: Fetcher,
 ): Promise<string | null> {
+  if (system === "workday") {
+    const board = readWorkdayBoardId(boardId);
+    return board && (await workdayBoardExists(board, fetcher))
+      ? nameFromBoardId(board.tenant)
+      : null;
+  }
   try {
     const data = await fetcher.json(boardFeedUrl[system](boardId));
     if (system === "greenhouse") {
