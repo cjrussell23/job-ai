@@ -2,13 +2,22 @@ import { z } from "zod";
 import type { TaskDefinition } from "@/features/ai/task";
 import { prompt, system, type TargetFitInput, version } from "./prompt-v2";
 
-const point = z.string().trim().min(1).max(200);
+// Models sometimes give a fifth point or a long one; keep the first four, trimmed,
+// rather than failing the whole score.
+const points = z
+  .array(z.string().trim().min(1))
+  .default([])
+  .transform((list) => list.slice(0, 4).map((p) => (p.length > 200 ? `${p.slice(0, 197)}…` : p)));
 
 export const fitSchema = z.object({
   score: z.int().min(0).max(100),
-  reason: z.string().trim().min(1).max(300),
-  pros: z.array(point).max(4).default([]),
-  cons: z.array(point).max(4).default([]),
+  reason: z
+    .string()
+    .trim()
+    .min(1)
+    .transform((r) => (r.length > 300 ? `${r.slice(0, 297)}…` : r)),
+  pros: points,
+  cons: points,
 });
 export type Fit = z.infer<typeof fitSchema>;
 
