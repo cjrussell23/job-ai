@@ -48,6 +48,11 @@ export const documents = pgTable(
     /** Increases with every regeneration, so a member can tell drafts apart. */
     version: integer("version").notNull().default(1),
     failure: text("failure"),
+    /**
+     * Set when the member shares a standing resume publicly (ADR 0004): anyone with the
+     * token can read that resume as JSON or PDF. Null means not shared.
+     */
+    publicToken: text("public_token").unique(),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
