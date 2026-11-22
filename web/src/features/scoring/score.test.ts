@@ -32,7 +32,12 @@ const replies = (prompt: string) => {
     };
   }
   if (prompt.includes("Their profile")) return { score: 60, reason: "You have cafe experience." };
-  return { score: 90, reason: "This is the kind of job you want." };
+  return {
+    score: 90,
+    reason: "This is the kind of job you want.",
+    pros: ["A downtown cafe, as you wanted"],
+    cons: ["Pay not stated"],
+  };
 };
 
 async function member(email: string, target: Partial<TargetInput> = {}) {
@@ -100,6 +105,10 @@ describe("matching and firm limits", () => {
       firmLimitResult: "pass",
       unknownFields: ["pay"],
       targetFit: 90,
+      targetFitPros: ["A downtown cafe, as you wanted"],
+      targetFitCons: ["Pay not stated"],
+      // A reply without lists still saves, with empty ones.
+      profileFitPros: [],
     });
 
     // The failing job never reached a model: one pay estimate, then two scores for each of two jobs.

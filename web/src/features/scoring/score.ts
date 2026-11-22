@@ -167,6 +167,8 @@ export async function scoreUnscoredMatches(
       if (result.ok) {
         update.targetFit = result.output.score;
         update.targetFitReason = result.output.reason;
+        update.targetFitPros = result.output.pros;
+        update.targetFitCons = result.output.cons;
         update.targetScoredAt = new Date();
       }
     }
@@ -180,6 +182,8 @@ export async function scoreUnscoredMatches(
       if (result.ok) {
         update.profileFit = result.output.score;
         update.profileFitReason = result.output.reason;
+        update.profileFitPros = result.output.pros;
+        update.profileFitCons = result.output.cons;
         update.profileScoredAt = new Date();
       }
     }

@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,17 +20,57 @@ function Score({
   label,
   value,
   reason,
+  pros,
+  cons,
+  prosLabel,
+  consLabel,
 }: {
   label: string;
   value: number | null;
   reason: string | null;
+  pros: string[];
+  cons: string[];
+  prosLabel: string;
+  consLabel: string;
 }) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-1.5">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label} <span className="tabular-nums text-foreground">{value ?? "…"}</span>
       </p>
       <p className="text-sm">{reason ?? "Not scored yet."}</p>
+      {(pros.length > 0 || cons.length > 0) && (
+        <div className="flex flex-col gap-2 text-sm">
+          {pros.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                {prosLabel}
+              </p>
+              <ul className="flex flex-col gap-0.5">
+                {pros.map((p) => (
+                  <li key={p} className="flex gap-1.5">
+                    <Plus className="mt-0.5 size-3.5 shrink-0 text-emerald-600" aria-hidden />
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {cons.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">{consLabel}</p>
+              <ul className="flex flex-col gap-0.5">
+                {cons.map((c) => (
+                  <li key={c} className="flex gap-1.5">
+                    <Minus className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -84,8 +124,24 @@ export function FeedCard({ item, grade, summary }: CardProps) {
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Score label="Target fit" value={best.targetFit} reason={best.targetFitReason} />
-        <Score label="Profile fit" value={best.profileFit} reason={best.profileFitReason} />
+        <Score
+          label="Target fit"
+          value={best.targetFit}
+          reason={best.targetFitReason}
+          pros={best.targetFitPros}
+          cons={best.targetFitCons}
+          prosLabel="What you'd like"
+          consLabel="What you might not"
+        />
+        <Score
+          label="Profile fit"
+          value={best.profileFit}
+          reason={best.profileFitReason}
+          pros={best.profileFitPros}
+          cons={best.profileFitCons}
+          prosLabel="Your strengths"
+          consLabel="Gaps"
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">

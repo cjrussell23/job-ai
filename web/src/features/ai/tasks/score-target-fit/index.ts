@@ -1,10 +1,14 @@
 import { z } from "zod";
 import type { TaskDefinition } from "@/features/ai/task";
-import { prompt, system, type TargetFitInput, version } from "./prompt-v1";
+import { prompt, system, type TargetFitInput, version } from "./prompt-v2";
+
+const point = z.string().trim().min(1).max(200);
 
 export const fitSchema = z.object({
   score: z.int().min(0).max(100),
   reason: z.string().trim().min(1).max(300),
+  pros: z.array(point).max(4).default([]),
+  cons: z.array(point).max(4).default([]),
 });
 export type Fit = z.infer<typeof fitSchema>;
 
