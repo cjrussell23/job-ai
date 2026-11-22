@@ -64,6 +64,8 @@ test("uses the model chosen in the admin settings", async () => {
     pickResumeItems: "anthropic/claude-sonnet-5.5",
     reviewResume: "anthropic/claude-sonnet-5.5",
     summarizeMatch: "anthropic/claude-haiku-5.5",
+    draftInterviewQuestions: "anthropic/claude-sonnet-5.5",
+    rateInterviewAnswer: "anthropic/claude-sonnet-5.5",
   });
   const fake = fakeModel({ words: [] });
   restore = fake.restore;
@@ -139,6 +141,8 @@ test("a model missing from the gateway price list is costed at the high fallback
     pickResumeItems: "anthropic/claude-sonnet-5.5",
     reviewResume: "anthropic/claude-sonnet-5.5",
     summarizeMatch: "anthropic/claude-haiku-5.5",
+    draftInterviewQuestions: "anthropic/claude-sonnet-5.5",
+    rateInterviewAnswer: "anthropic/claude-sonnet-5.5",
   });
   restore = fakeModel({ words: [] }).restore;
   await runTask(userId, echoTask, { text: "x" });

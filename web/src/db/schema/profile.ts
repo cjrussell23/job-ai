@@ -37,6 +37,7 @@ export const profileItemSource = pgEnum("profile_item_source", [
   "manual",
   "question",
   "tailored_document",
+  "interview",
 ]);
 
 /** One fact or piece of writing in a user's master profile. */

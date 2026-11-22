@@ -14,6 +14,8 @@ export const aiTasks = [
   "pickResumeItems",
   "reviewResume",
   "summarizeMatch",
+  "draftInterviewQuestions",
+  "rateInterviewAnswer",
 ] as const;
 export type AiTask = (typeof aiTasks)[number];
 
@@ -30,4 +32,6 @@ export const aiTaskLabels: Record<AiTask, string> = {
   pickResumeItems: "Pick resume items for a job target",
   reviewResume: "Give feedback on a resume",
   summarizeMatch: "Summarize a strong match",
+  draftInterviewQuestions: "Draft interview practice questions",
+  rateInterviewAnswer: "Rate an interview practice answer",
 };

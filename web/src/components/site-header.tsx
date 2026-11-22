@@ -14,6 +14,9 @@ export function SiteHeader({ name, isAdmin }: Props) {
           <Link href="/board" className="hover:text-foreground">
             Board
           </Link>
+          <Link href="/interview" className="hover:text-foreground">
+            Interview
+          </Link>
           <Link href="/profile" className="hover:text-foreground">
             Profile
           </Link>
