@@ -27,25 +27,43 @@ export async function runTask<Input, Out>(
   let inputTokens = 0;
   let outputTokens = 0;
   try {
+    // Web search tasks run in two calls: the model can't use tools while it is held to a
+    // structured answer, so it researches freely first, then writes the answer from its notes.
+    let research: { notes: string; urls: string[] } | null = null;
+    const tools = task.webSearch ? webSearchTools() : undefined;
+    if (tools) {
+      const searched = await generateText({
+        model: languageModel(model),
+        system: `${system}\n\nFirst, search the web. Use the search tool several times, then write plain notes of what the pages say, with each page's URL.`,
+        prompt,
+        maxOutputTokens: task.maxOutputTokens,
+        tools,
+        stopWhen: isStepCount(8),
+      });
+      inputTokens += searched.totalUsage?.inputTokens ?? 0;
+      outputTokens += searched.totalUsage?.outputTokens ?? 0;
+      research = { notes: searched.text, urls: searchedUrls(searched) };
+    }
     const result = await generateText({
       model: languageModel(model),
       system,
-      prompt,
+      prompt: research
+        ? `${prompt}\n\nYour research notes:\n${research.notes}\n\nPages the search returned:\n${research.urls.join("\n")}`
+        : prompt,
       maxOutputTokens: task.maxOutputTokens,
       output: Output.object({ schema: task.schema }),
-      ...(task.webSearch ? { tools: webSearchTools(), stopWhen: isStepCount(6) } : {}),
     });
-    inputTokens = result.totalUsage?.inputTokens ?? result.usage.inputTokens ?? 0;
-    outputTokens = result.totalUsage?.outputTokens ?? result.usage.outputTokens ?? 0;
+    inputTokens += result.totalUsage?.inputTokens ?? result.usage.inputTokens ?? 0;
+    outputTokens += result.totalUsage?.outputTokens ?? result.usage.outputTokens ?? 0;
     return {
       ok: true,
       output: result.output,
-      ...(task.webSearch ? { searchedUrls: searchedUrls(result) } : {}),
+      ...(task.webSearch ? { searchedUrls: research?.urls ?? [] } : {}),
     };
   } catch (error) {
     if (NoObjectGeneratedError.isInstance(error)) {
-      inputTokens = error.usage?.inputTokens ?? 0;
-      outputTokens = error.usage?.outputTokens ?? 0;
+      inputTokens += error.usage?.inputTokens ?? 0;
+      outputTokens += error.usage?.outputTokens ?? 0;
       log.warn({ task: task.name, model }, "model output did not match the task schema");
       return { ok: false, reason: "invalid_output" };
     }
