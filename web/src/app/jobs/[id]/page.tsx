@@ -13,6 +13,8 @@ import { documentBodySchema } from "@/features/documents/body";
 import { DocumentEditor } from "@/features/documents/components/document-editor";
 import { TailoredScore } from "@/features/documents/components/tailored-score";
 import { type Document, documentsForJob } from "@/features/documents/documents";
+import { profileOf, profilesFor } from "@/features/jobs/company-profiles";
+import { CompanyCard } from "@/features/jobs/components/company-card";
 import { JobDates } from "@/features/jobs/components/job-dates";
 import { Pay } from "@/features/jobs/components/pay";
 import { PayPanel } from "@/features/jobs/components/pay-panel";
@@ -127,7 +129,10 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
   if (!found) notFound();
   const mine = (await memberPayFor(userId, [id])).get(id);
   const job = withMemberPay(found, mine);
-  const summary = (await summariesFor(userId, [id])).get(id);
+  const [summary, company] = await Promise.all([
+    summariesFor(userId, [id]).then((m) => m.get(id)),
+    profilesFor([found.company]).then((m) => profileOf(m, found.company)),
+  ]);
   const docs = await documentsForJob(userId, id);
   const byKind = (kind: Document["kind"]) => docs.find((d) => d.kind === kind);
   const writing = docs.some((d) => d.state === "generating");
@@ -175,6 +180,7 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
             ))}
           </ul>
         </div>
+        <CompanyCard company={job.company} jobId={job.id} profile={company} />
         <ApplicationPanel userId={userId} jobId={job.id} />
         {docs.length === 0 ? (
           <Card>

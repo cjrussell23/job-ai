@@ -1,7 +1,7 @@
-import { generateText, NoObjectGeneratedError, Output } from "ai";
+import { generateText, isStepCount, NoObjectGeneratedError, Output } from "ai";
 import { getSettings } from "@/features/admin/settings";
 import { log } from "@/lib/log";
-import { languageModel } from "./model";
+import { languageModel, webSearchTools } from "./model";
 import { costUsd } from "./pricing";
 import type { TaskDefinition, TaskResult } from "./task";
 import { isOverCap, recordUsage } from "./usage";
@@ -33,10 +33,15 @@ export async function runTask<Input, Out>(
       prompt,
       maxOutputTokens: task.maxOutputTokens,
       output: Output.object({ schema: task.schema }),
+      ...(task.webSearch ? { tools: webSearchTools(), stopWhen: isStepCount(6) } : {}),
     });
-    inputTokens = result.usage.inputTokens ?? 0;
-    outputTokens = result.usage.outputTokens ?? 0;
-    return { ok: true, output: result.output };
+    inputTokens = result.totalUsage?.inputTokens ?? result.usage.inputTokens ?? 0;
+    outputTokens = result.totalUsage?.outputTokens ?? result.usage.outputTokens ?? 0;
+    return {
+      ok: true,
+      output: result.output,
+      ...(task.webSearch ? { searchedUrls: searchedUrls(result) } : {}),
+    };
   } catch (error) {
     if (NoObjectGeneratedError.isInstance(error)) {
       inputTokens = error.usage?.inputTokens ?? 0;
@@ -59,4 +64,23 @@ export async function runTask<Input, Out>(
       });
     }
   }
+}
+
+/** Every URL the web search returned across the call's steps, plus any cited sources. */
+function searchedUrls(result: {
+  steps: { toolResults: unknown[] }[];
+  sources?: unknown[];
+}): string[] {
+  const urls = new Set<string>();
+  const visit = (value: unknown) => {
+    if (typeof value === "string") {
+      if (/^https?:\/\//.test(value)) urls.add(value);
+      return;
+    }
+    if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === "object") Object.values(value).forEach(visit);
+  };
+  for (const step of result.steps) visit(step.toolResults);
+  visit(result.sources ?? []);
+  return [...urls];
 }

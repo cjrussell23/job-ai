@@ -86,9 +86,11 @@ type CardProps = {
   item: FeedItem;
   grade: { kind: "up" | "down"; reason: string | null } | null;
   summary?: MatchSummaryRow;
+  /** Size, industry and rating from the company's description, when there is one. */
+  companyLine?: string | null;
 };
 
-export function FeedCard({ item, grade, summary }: CardProps) {
+export function FeedCard({ item, grade, summary, companyLine }: CardProps) {
   const { job, best, otherTargets } = item;
   const workplace = workplaceLabels[job.remote];
   return (
@@ -101,6 +103,7 @@ export function FeedCard({ item, grade, summary }: CardProps) {
             {job.location && ` · ${job.location}`}
             {workplace && ` · ${workplace}`}
           </p>
+          {companyLine && <p className="text-xs text-muted-foreground">{companyLine}</p>}
           <p className="text-sm">
             <Pay job={job} />
           </p>
