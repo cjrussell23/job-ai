@@ -37,9 +37,15 @@ export const jobMatches = pgTable(
     unknownFields: text("unknown_fields").array().notNull().default([]),
     targetFit: integer("target_fit"),
     targetFitReason: text("target_fit_reason"),
+    /** What suits the member about the job, and what may not; empty on older scores. */
+    targetFitPros: text("target_fit_pros").array().notNull().default([]),
+    targetFitCons: text("target_fit_cons").array().notNull().default([]),
     targetScoredAt: timestamp("target_scored_at", { withTimezone: true }),
     profileFit: integer("profile_fit"),
     profileFitReason: text("profile_fit_reason"),
+    /** Where the member's profile meets the job, and where it falls short. */
+    profileFitPros: text("profile_fit_pros").array().notNull().default([]),
+    profileFitCons: text("profile_fit_cons").array().notNull().default([]),
     profileScoredAt: timestamp("profile_scored_at", { withTimezone: true }),
     dismissed: boolean("dismissed").notNull().default(false),
     /** When the member was told about this match, so it is never sent twice. */

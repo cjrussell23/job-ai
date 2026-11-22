@@ -1,6 +1,6 @@
 import type { TaskDefinition } from "@/features/ai/task";
 import { type Fit, fitSchema } from "../score-target-fit";
-import { type ProfileFitInput, prompt, system, version } from "./prompt-v1";
+import { type ProfileFitInput, prompt, system, version } from "./prompt-v2";
 
 export const scoreProfileFit: TaskDefinition<ProfileFitInput, Fit> = {
   name: "scoreProfileFit",

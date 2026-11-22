@@ -537,8 +537,9 @@ export function ResumeBuilder(props: Props) {
           <div className="flex flex-col gap-1">
             <span className="font-medium">Sections</span>
             <span className="text-xs text-muted-foreground">
-              Reorder them, rename a heading, or start one on a new page. Otherwise pages break
-              between bullets, never inside one or straight after a heading.
+              Type over a heading to rename it on this resume, e.g. "Work projects" to "Company
+              projects". Reorder sections with the arrows, or start one on a new page. Otherwise
+              pages break between bullets, never inside one or straight after a heading.
             </span>
             <ol className="flex flex-col gap-1">
               {layout.order.map((key, index) => (
@@ -546,7 +547,7 @@ export function ResumeBuilder(props: Props) {
                   <span className="w-5 text-muted-foreground">{index + 1}.</span>
                   <Input
                     value={layout.headings[key] ?? ""}
-                    placeholder={sectionLabels[key]}
+                    placeholder={`${sectionLabels[key]} (type to rename)`}
                     aria-label={`Heading for ${sectionLabels[key]}`}
                     maxLength={60}
                     onChange={(e) =>

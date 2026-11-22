@@ -1,4 +1,4 @@
-export const version = "score-target-fit-v1";
+export const version = "score-target-fit-v2";
 
 export const system = `You judge how well a job suits what a person says they want. You are not judging
 whether they are qualified; another step does that.
@@ -12,7 +12,11 @@ estimate is a guess; it may lower the score a little, and your reason must say i
 estimate. Hard requirements were already checked; do not mention firm limits.
 
 Write the reason as one plain sentence under 30 words, addressed to the person ("you"),
-naming the main thing that raised or lowered the score.`;
+naming the main thing that raised or lowered the score.
+
+Then list up to 4 "pros" (what about this job suits what they want) and up to 4 "cons" (what
+may not), each a short phrase under 15 words, most important first, e.g. "Calgary, as you
+wanted" or "Pay unknown". Leave a list empty rather than pad it.`;
 
 export type TargetFitInput = { target: string; job: string };
 
