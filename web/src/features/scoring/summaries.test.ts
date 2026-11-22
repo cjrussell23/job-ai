@@ -18,8 +18,11 @@ afterEach(() => restore());
 afterAll(closeDb);
 
 const replies = (prompt: string) => {
-  if (prompt.includes("estimate the likely pay")) {
-    return { min: 17, max: 19, period: "hour", certainty: "medium", reason: "Typical." };
+  if (prompt.includes("work out its pay")) {
+    return {
+      stated: null,
+      estimate: { min: 17, max: 19, period: "hour", certainty: "medium", reason: "Typical." },
+    };
   }
   if (prompt.includes("personal read of one job")) {
     return {
