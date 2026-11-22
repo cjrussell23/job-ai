@@ -120,6 +120,10 @@ _Avoid_: Missing skill, weakness
 A short AI read of one strong match for one user: what fits them, what to watch, and what to ask. Written only for matches at or above the user's summary score (never below the admin's minimum), and rated by the user to improve later ones.
 _Avoid_: Job summary, digest
 
+**Practice set**:
+Interview questions written for one user, either general (from their profile and targets) or for one job on their board. Each answer can be rated, and a fact in it that the profile lacks is offered as a new profile item the user accepts or rejects.
+_Avoid_: Quiz, mock interview
+
 **Recorded pay**:
 Pay a user typed in for a job or confirmed from its estimate. Private to them, and known pay for their own firm limits and scoring (ADR 0003).
 _Avoid_: User salary, override

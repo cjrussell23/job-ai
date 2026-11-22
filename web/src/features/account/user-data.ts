@@ -6,6 +6,8 @@ import {
   applications,
   documents,
   feedback,
+  interviewQuestions,
+  interviewSets,
   jobMatches,
   jobTargets,
   learnedPreferences,
@@ -41,6 +43,8 @@ export const userOwnedTables = {
   applications: "exported",
   member_job_pay: "exported",
   match_summaries: "exported",
+  interview_sets: "exported",
+  interview_questions: "exported",
   suggestions: "exported",
   profile_questions: "exported",
   profile_reviews: "excluded: a log of review requests",
@@ -86,6 +90,8 @@ export async function exportUserData(userId: string) {
     contacts,
     knownPay,
     summaryRows,
+    practiceSets,
+    practiceQuestions,
   ] = await Promise.all([
     db().select().from(profileItems).where(eq(profileItems.userId, userId)),
     db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
@@ -101,6 +107,8 @@ export async function exportUserData(userId: string) {
     db().select().from(profileContacts).where(eq(profileContacts.userId, userId)),
     db().select().from(memberJobPay).where(eq(memberJobPay.userId, userId)),
     db().select().from(matchSummaries).where(eq(matchSummaries.userId, userId)),
+    db().select().from(interviewSets).where(eq(interviewSets.userId, userId)),
+    db().select().from(interviewQuestions).where(eq(interviewQuestions.userId, userId)),
   ]);
   const history = apps.length
     ? await db()
@@ -135,6 +143,8 @@ export async function exportUserData(userId: string) {
     profileQuestions: strip(questions),
     jobPay: strip(knownPay),
     matchSummaries: strip(summaryRows),
+    interviewSets: strip(practiceSets),
+    interviewQuestions: strip(practiceQuestions),
   };
 }
 

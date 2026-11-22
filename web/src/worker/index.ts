@@ -5,6 +5,7 @@ import { runFeedback } from "@/features/documents/feedback";
 import { generateDocument } from "@/features/documents/generate";
 import { pickForTarget } from "@/features/documents/pick";
 import { learnPreferencesForAll } from "@/features/feedback/learn";
+import { runRating, runSet } from "@/features/interview/interview";
 import { notifyNewMatches } from "@/features/notifications/notify";
 import { parseUpload } from "@/features/profile/parse-upload";
 import { runReview } from "@/features/profile/review";
@@ -132,6 +133,21 @@ async function main() {
 
   await boss.work(queues.checkCompanyBoards, { localConcurrency: 1 }, async () => {
     await checkCompanyBoards();
+  });
+
+  const interviewSetJob = z.object({ userId: z.string(), setId: z.uuid() });
+  await boss.work(queues.draftInterviewQuestions, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, setId } = interviewSetJob.parse(job.data);
+      await runSet(userId, setId);
+    }
+  });
+  const ratingJob = z.object({ userId: z.string(), questionId: z.uuid() });
+  await boss.work(queues.rateInterviewAnswer, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, questionId } = ratingJob.parse(job.data);
+      await runRating(userId, questionId);
+    }
   });
 
   log.info("worker started");

@@ -15,6 +15,8 @@ export const queues = {
   pickResumeItems: "pick-resume-items",
   reviewResume: "review-resume",
   checkCompanyBoards: "check-company-boards",
+  draftInterviewQuestions: "draft-interview-questions",
+  rateInterviewAnswer: "rate-interview-answer",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];

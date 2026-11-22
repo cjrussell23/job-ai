@@ -190,6 +190,13 @@
       "when": 1795311532142,
       "tag": "0026_public_resume_link",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795313099589,
+      "tag": "0027_interview",
+      "breakpoints": true
     }
   ]
 }
