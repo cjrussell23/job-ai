@@ -7,7 +7,7 @@ import { createAlbertaSource, parseSitemap } from "./alberta";
 import { createBoardSource, parseBoardUrl } from "./company-boards";
 import type { Fetcher } from "./http";
 import { createJobBankSource, feedLocation, parseFeed } from "./jobbank";
-import { locationMatches, titleMatches } from "./match";
+import { locationMatches, titleMatches, titleMatchesLoosely } from "./match";
 import { parsePayText } from "./pay-text";
 import { parsePostings } from "./source";
 import {
@@ -37,6 +37,19 @@ function fakeFetcher(routes: [RegExp, string][]) {
 const noPause = async () => {};
 
 describe("matching helpers", () => {
+  test("the loose match needs the role word and half the rest", () => {
+    expect(titleMatchesLoosely("Developer, Applications", ["Software Developer"])).toBe(true);
+    expect(titleMatchesLoosely("Senior Systems Analyst", ["IT Systems Analyst"])).toBe(true);
+    expect(titleMatchesLoosely("Policy Analyst", ["Full Stack Software Developer"])).toBe(false);
+    expect(titleMatchesLoosely("Web Designer", ["Full Stack Web Developer"])).toBe(false);
+    // "Full stack" only qualifies, so this is a "Web Developer" search: any developer fits.
+    expect(titleMatchesLoosely("Application Developer", ["Full Stack Web Developer"])).toBe(true);
+    expect(titleMatchesLoosely("Senior Policy Analyst", ["Data Quality Analyst"])).toBe(false);
+    expect(titleMatchesLoosely("Web Applications Developer", ["Full Stack Web Developer"])).toBe(
+      true,
+    );
+  });
+
   test("a search title matches postings containing all its words", () => {
     expect(titleMatches("Senior Backend Engineer II", ["Backend Engineer"])).toBe(true);
     expect(titleMatches("Backend Engineering Manager", ["Backend Engineer"])).toBe(false);

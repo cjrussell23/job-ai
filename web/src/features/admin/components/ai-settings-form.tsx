@@ -11,6 +11,7 @@ type Props = {
   models: Record<AiTask, string>;
   defaultSpendCapCents: number;
   summaryMinScore: number;
+  rescoreLimitPerDay: number;
   /** Model ids the AI Gateway offers, as suggestions. */
   availableModels: string[];
 };
@@ -19,6 +20,7 @@ export function AiSettingsForm({
   models,
   defaultSpendCapCents,
   summaryMinScore,
+  rescoreLimitPerDay,
   availableModels,
 }: Props) {
   const [state, action, pending] = useActionState<ActionState, FormData>(aiSettingsAction, {});
@@ -53,6 +55,22 @@ export function AiSettingsForm({
           defaultValue={(defaultSpendCapCents / 100).toFixed(2)}
           required
         />
+      </div>
+      <div className="flex max-w-xs flex-col gap-1.5">
+        <Label htmlFor="rescore-limit">Rescores each member may run per day</Label>
+        <Input
+          id="rescore-limit"
+          name="rescoreLimitPerDay"
+          type="number"
+          min="0"
+          max="100"
+          defaultValue={rescoreLimitPerDay}
+          required
+        />
+        <p className="text-xs text-muted-foreground">
+          Each rescore re-scores a member's changed matches, two AI calls per match. Calls still
+          count against each member's monthly allowance.
+        </p>
       </div>
       <div className="flex max-w-xs flex-col gap-1.5">
         <Label htmlFor="summary-min">Lowest match score that can get an AI summary</Label>

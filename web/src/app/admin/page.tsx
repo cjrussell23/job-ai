@@ -64,6 +64,7 @@ async function AdminDashboard() {
               models={settings.models}
               defaultSpendCapCents={settings.defaultSpendCapCents}
               summaryMinScore={settings.summaryMinScore}
+              rescoreLimitPerDay={settings.rescoreLimitPerDay}
               availableModels={availableModels}
             />
           </CardContent>

@@ -77,10 +77,15 @@ export async function aiSettingsAction(_: ActionState, form: FormData): Promise<
   if (!Number.isInteger(summaryMin) || summaryMin < 0 || summaryMin > 100) {
     return { error: "The summary minimum is a whole number from 0 to 100." };
   }
+  const rescoreLimit = Number(form.get("rescoreLimitPerDay"));
+  if (!Number.isInteger(rescoreLimit) || rescoreLimit < 0 || rescoreLimit > 100) {
+    return { error: "The rescore limit is a whole number from 0 to 100." };
+  }
   const results = await Promise.all([
     setSetting("models", models),
     setSetting("defaultSpendCapCents", cents),
     setSetting("summaryMinScore", summaryMin),
+    setSetting("rescoreLimitPerDay", rescoreLimit),
   ]);
   revalidatePath("/admin");
   return results.every((r) => r.ok)
