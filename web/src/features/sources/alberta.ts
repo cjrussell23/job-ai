@@ -1,6 +1,6 @@
 import { parse } from "node-html-parser";
 import { type Fetcher, httpFetcher, sleep } from "./http";
-import { locationMatches, titleMatches } from "./match";
+import { locationMatches, titleMatchesLoosely } from "./match";
 import { parsePayText } from "./pay-text";
 import type { SearchQuery, SearchSource } from "./source";
 
@@ -75,7 +75,8 @@ export function createAlbertaSource(fetcher: Fetcher = httpFetcher, pause = slee
       // Every posting is in Alberta, so a search for Alberta or Canada covers all of them.
       const matches = cached.entries.filter(
         (e) =>
-          locationMatches(`${e.city}, AB`, query.location) && titleMatches(e.title, [query.title]),
+          locationMatches(`${e.city}, AB`, query.location) &&
+          titleMatchesLoosely(e.title, [query.title]),
       );
       const postings: unknown[] = [];
       for (const entry of matches) {
