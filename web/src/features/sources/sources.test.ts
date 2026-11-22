@@ -2,9 +2,20 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeEach, describe, expect, test } from "vitest";
 import { closeDb } from "@/db/client";
+import { parsePlace } from "@/lib/places";
 import { resetDb } from "@/test/db";
 import { createAlbertaSource, parseSitemap } from "./alberta";
 import { createBoardSource, parseBoardUrl } from "./company-boards";
+import {
+  createGcJobsSource,
+  departmentName,
+  hasPage,
+  parseGcPay,
+  parsePostingPage,
+  parseResults,
+  pickLocationCode,
+  postingLocation,
+} from "./gcjobs";
 import type { Fetcher } from "./http";
 import { createJobBankSource, feedLocation, parseFeed } from "./jobbank";
 import { locationMatches, titleMatches, titleMatchesLoosely } from "./match";
@@ -156,6 +167,142 @@ describe("Government of Alberta", () => {
     });
     expect(postings[0]?.description.length).toBeGreaterThan(100);
     expect(requested.filter((u) => u.includes("/job/"))).toHaveLength(1);
+  });
+});
+
+describe("GC Jobs", () => {
+  test("reads the results fragment", () => {
+    const entries = parseResults(fixture("gcjobs-results.html"));
+    expect(entries).toHaveLength(5);
+    expect(entries[1]).toMatchObject({
+      posterId: "2476904",
+      title: "Painter / Sign Painter",
+      department: "National Defence - Assistant Deputy Minister (Infrastructure & Environment)",
+      salary: "GL-PCF-06: $32.31 to $35.14 / GL-PCF-07: $33.42 to $36.35",
+    });
+    expect(entries[1]?.locations).toMatch(/^Cold Lake \(Alberta\), Wainwright/);
+    expect(departmentName(entries[1]?.department ?? "")).toBe("National Defence");
+    expect(hasPage(fixture("gcjobs-results.html"), 2)).toBe(true);
+    expect(hasPage(fixture("gcjobs-results.html"), 7)).toBe(false);
+  });
+
+  test("maps listed locations to one place", () => {
+    const listed = "Cold Lake (Alberta), Wainwright (Alberta), Dundurn (Saskatchewan)";
+    expect(postingLocation(listed, parsePlace("Alberta"))).toBe("Cold Lake, AB");
+    expect(postingLocation(listed, parsePlace("Dundurn, SK"))).toBe("Dundurn, SK");
+    expect(postingLocation("Bagotville (Québec)", null)).toBe("Bagotville, QC");
+    expect(postingLocation("Various Locations", parsePlace("Calgary, AB"))).toBe("Canada");
+  });
+
+  test("reads pay from salary text", () => {
+    expect(parseGcPay("$113,272 to $133,262")).toEqual({
+      min: 113272,
+      max: 133262,
+      period: "year",
+    });
+    expect(parseGcPay("GL-PCF-06: $32.31 to $35.14 / GL-PCF-07: $33.42 to $36.35")).toEqual({
+      min: 32.31,
+      max: 35.14,
+      period: "hour",
+    });
+    expect(parseGcPay("$140,315 to $170,718 (Subject to revision.)")?.max).toBe(170718);
+    expect(parseGcPay("")).toBeNull();
+  });
+
+  test("reads a posting page, or the link when it is advertised elsewhere", () => {
+    const page = parsePostingPage(fixture("gcjobs-posting.html"));
+    expect(page.applyUrl).toBeNull();
+    expect(page.description).toContain("About the position");
+    expect(page.description).toContain("You need");
+    const external = parsePostingPage(fixture("gcjobs-external.html"));
+    expect(external.description).toBe("");
+    expect(external.applyUrl).toMatch(/^https:\/\/careers\.bankofcanada\.ca\//);
+  });
+
+  test("picks the location code for a city or province", () => {
+    const options = [
+      { LOCATION_CD: "W", LOCATION_DESC: "Calgary (Alberta)", LOCATION_ID: 134 },
+      {
+        LOCATION_CD: "W",
+        LOCATION_DESC: "Calgary International Airport (Alberta)",
+        LOCATION_ID: 9,
+      },
+      { LOCATION_CD: "P", LOCATION_DESC: "Alberta", LOCATION_ID: 5 },
+    ];
+    const at = (text: string) => {
+      const place = parsePlace(text);
+      return place ? pickLocationCode(place, options) : undefined;
+    };
+    expect(at("Calgary, AB")).toBe("W134");
+    expect(at("Alberta")).toBe("P5");
+    expect(at("Calgary, BC")).toBeNull();
+  });
+
+  test("searches through one session and reads each posting", async () => {
+    const requested: string[] = [];
+    let sessions = 0;
+    const newSession = () => {
+      sessions++;
+      return {
+        text: async (url: string) => {
+          requested.push(url);
+          if (url.includes("fromMenu=true")) {
+            return "<script>setNetworkAvailability('ABC123',true,'x');</script>";
+          }
+          if (url.includes("ajaxFilter=Calgary")) {
+            return JSON.stringify([
+              { LOCATION_CD: "W", LOCATION_DESC: "Calgary (Alberta)", LOCATION_ID: 134 },
+            ]);
+          }
+          if (url.includes("isSecondPartOfPage=1")) return fixture("gcjobs-results.html");
+          if (url.includes("search=Search") || url.includes("requestedPage=")) {
+            return "<html>search page</html>";
+          }
+          if (url.includes("page1800?poster=2479295")) return fixture("gcjobs-external.html");
+          if (url.includes("page1800")) return fixture("gcjobs-posting.html");
+          throw new Error(`unexpected ${url}`);
+        },
+      };
+    };
+    const source = createGcJobsSource(newSession, noPause);
+    const raw = await source.search({ title: "painter", location: "Calgary, AB" });
+    const { postings, rejected } = parsePostings(raw);
+    expect(rejected).toBe(0);
+    // Every page serves the same sample, so repeats are dropped.
+    expect(postings).toHaveLength(5);
+    const painter = postings.find((p) => p.title === "Painter / Sign Painter");
+    expect(painter).toMatchObject({
+      url: "https://emploisfp-psjobs.cfp-psc.gc.ca/psrs-srfp/applicant/page1800?poster=2476904&toggleLanguage=en",
+      company: "National Defence",
+      location: "Cold Lake, AB",
+      pay: { min: 32.31, max: 35.14, period: "hour" },
+    });
+    expect(painter?.description).toContain("About the position");
+    expect(postings[0]).toMatchObject({ location: "Canada", description: "" });
+    expect(postings[0]?.applyUrl).toMatch(/bankofcanada/);
+
+    const submit = requested.find((u) => u.includes("search=Search"));
+    expect(submit).toContain(";jsessionid=ABC123?");
+    expect(submit).toContain("location=W134");
+    expect(submit).toContain("title=painter");
+    // Pages 2 and 3 were read; the sample links to six.
+    expect(
+      requested.filter((u) => u.includes("requestedPage=") && u.includes("isSecond")),
+    ).toHaveLength(2);
+    // A second query reuses the session and the cached location code.
+    await source.search({ title: "painter", location: "Calgary, AB" });
+    expect(sessions).toBe(1);
+    expect(requested.filter((u) => u.includes("ajaxFilter"))).toHaveLength(1);
+  });
+
+  test("finds nothing for a place outside Canada or one it cannot locate", async () => {
+    const newSession = () => ({
+      text: async (url: string) =>
+        url.includes("fromMenu") ? "setNetworkAvailability('ABC123',true)" : "[]",
+    });
+    const source = createGcJobsSource(newSession, noPause);
+    expect(await source.search({ title: "painter", location: "United States" })).toEqual([]);
+    expect(await source.search({ title: "painter", location: "Nowhere, AB" })).toEqual([]);
   });
 });
 
