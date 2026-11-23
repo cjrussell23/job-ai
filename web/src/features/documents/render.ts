@@ -23,7 +23,8 @@ const templateCss: Record<Template, string> = {
   header { text-align: center; border-bottom: none; padding-bottom: 2pt; margin-bottom: 6pt; }
   h1 { letter-spacing: 0.03em; }
   .contact { color: #111; }
-  h2 { font-variant: small-caps; text-transform: none; font-size: 1.12em; letter-spacing: 0.03em;
+  /* Plain capitals: the bundled fonts have no true small caps, and faked ones look uneven. */
+  h2 { font-size: 1em; letter-spacing: 0.06em;
     border-bottom: 1px solid currentColor; padding-bottom: 1pt; margin: 10pt 0 5pt; }
   .entry-title { font-weight: 700; }
   .entry-role { font-style: italic; }
