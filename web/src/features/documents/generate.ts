@@ -83,5 +83,6 @@ export async function generateDocument(
   const { body, report } = assembleCoverLetter(result.output, items, header);
   if (report.dropped > 0)
     log.warn({ documentId, ...report }, "dropped cover letter paragraphs without valid sources");
-  return finishDocument(userId, documentId, body);
+  // The letter matches the resume's look: same font, colour, margins and header.
+  return finishDocument(userId, documentId, body, await tailoredLayout(userId));
 }

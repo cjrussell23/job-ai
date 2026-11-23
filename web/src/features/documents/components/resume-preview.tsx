@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { densityStyles, type Layout } from "@/features/documents/layout";
+import { type Layout, resolvedStyle } from "@/features/documents/layout";
 import { type Atom, paginate } from "@/features/documents/paginate";
 
 const pxPerIn = 96;
@@ -38,18 +38,29 @@ export function ResumePreview({ html, layout, onMeasure }: Props) {
   const measure = useCallback(() => {
     const doc = frame.current?.contentDocument;
     if (!doc?.body) return;
-    const style = densityStyles[layout.density];
+    const style = resolvedStyle(layout);
     const marginPx = style.marginIn.y * pxPerIn;
-    const pageContentPx = 11 * pxPerIn - 2 * marginPx;
+    // A repeated header and page numbers sit in the page margins, taking room from every page.
+    const pageContentPx = 11 * pxPerIn - 2 * marginPx - (style.headerIn + style.footerIn) * pxPerIn;
     for (const old of doc.querySelectorAll("[data-page-break]")) old.remove();
-    const bodyTop = doc.body.getBoundingClientRect().top + marginPx;
+    const shownHeader = doc.querySelector("header");
+    // With a repeated header, the one shown at the top stands in for the page header, so
+    // the page's content starts below it.
+    const contentTop =
+      layout.repeatHeader && shownHeader
+        ? shownHeader.getBoundingClientRect().bottom
+        : doc.body.getBoundingClientRect().top + marginPx;
+    const bodyTop = contentTop;
     // The same units the print styles keep whole: the header, headings, entry heads, bullets, paragraphs.
-    const atoms: Atom[] = [...doc.querySelectorAll("header, h2, .entry-head, li, p")].map((el) => {
+    const units = layout.repeatHeader
+      ? "h2, .entry-head, .entry-role, li, p"
+      : "header, h2, .entry-head, .entry-role, li, p";
+    const atoms: Atom[] = [...doc.querySelectorAll(units)].map((el) => {
       const rect = el.getBoundingClientRect();
       return {
         top: rect.top - bodyTop,
         bottom: rect.bottom - bodyTop,
-        keepWithNext: el.matches("h2, .entry-head"),
+        keepWithNext: el.matches("h2, .entry-head, .entry-role"),
         breakBefore: el.matches(".page-break"),
       };
     });
@@ -58,10 +69,12 @@ export function ResumePreview({ html, layout, onMeasure }: Props) {
     result.breaks.forEach((at, index) => {
       const line = doc.createElement("div");
       line.dataset.pageBreak = "";
-      line.textContent = `Page ${index + 2}`;
+      line.textContent = layout.repeatHeader
+        ? `Page ${index + 2} (header repeats)`
+        : `Page ${index + 2}`;
       line.setAttribute(
         "style",
-        `position:absolute;left:0;right:0;top:${marginPx + at - 4}px;border-top:2px dashed #e11d48;font:600 10px sans-serif;color:#e11d48;padding:2px 6px;text-align:right;pointer-events:none`,
+        `position:absolute;left:0;right:0;top:${contentTop - doc.body.getBoundingClientRect().top + at - 4}px;border-top:2px dashed #e11d48;font:600 10px sans-serif;color:#e11d48;padding:2px 6px;text-align:right;pointer-events:none`,
       );
       doc.body.appendChild(line);
     });

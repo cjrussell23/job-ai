@@ -2,8 +2,7 @@ import "server-only";
 import { resumeBodySchema } from "@/features/documents/body";
 import type { Document } from "@/features/documents/documents";
 import { readLayout } from "@/features/documents/layout";
-import { htmlToPdf, pdfPageCount } from "@/features/documents/pdf";
-import { renderResume } from "@/features/documents/render";
+import { documentPdf, pdfPageCount } from "@/features/documents/pdf";
 import { scoreBody } from "@/features/documents/score";
 import { tailoredLayout } from "@/features/documents/standing";
 import { ScoreCard } from "./score-card";
@@ -17,9 +16,7 @@ async function pagesFor(doc: Document): Promise<number | null> {
   if (cached !== undefined) return cached;
   const body = resumeBodySchema.safeParse(doc.body);
   if (!body.success) return null;
-  const pages = pdfPageCount(
-    await htmlToPdf(renderResume(body.data, { layout: readLayout(doc.layout) })),
-  );
+  const pages = pdfPageCount(await documentPdf(body.data, readLayout(doc.layout)));
   if (pageCache.size > 200) pageCache.clear();
   pageCache.set(key, pages);
   return pages;

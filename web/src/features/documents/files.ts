@@ -1,8 +1,8 @@
 import type { Document } from "@/db/schema";
 import { documentBodySchema } from "./body";
 import { readLayout } from "./layout";
-import { htmlToPdf } from "./pdf";
-import { renderDocument, renderResumeText } from "./render";
+import { documentPdf } from "./pdf";
+import { renderResumeText } from "./render";
 
 /** A file name for a document, from the name on it. */
 export function documentFileName(doc: Document, extension: string): string {
@@ -43,5 +43,5 @@ export function coverLetterParagraphs(doc: Document): string | null {
 export async function documentAsPdf(doc: Document): Promise<Uint8Array | null> {
   const body = documentBodySchema.safeParse(doc.body);
   if (!body.success) return null;
-  return htmlToPdf(renderDocument(body.data, { layout: readLayout(doc.layout) }));
+  return documentPdf(body.data, readLayout(doc.layout));
 }
