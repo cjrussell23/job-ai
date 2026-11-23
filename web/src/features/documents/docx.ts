@@ -112,11 +112,10 @@ const heading = (text: string, breakBefore: boolean, s: Setup) =>
       : undefined,
     children: [
       new TextRun({
-        text: s.harvard ? text : text.toUpperCase(),
-        smallCaps: s.harvard,
+        text: text.toUpperCase(),
         bold: true,
-        size: s.harvard ? Math.round(s.size * 1.12) : 20,
-        characterSpacing: s.harvard ? 0 : 20,
+        size: s.harvard ? s.size : 20,
+        characterSpacing: s.harvard ? 12 : 20,
         color: s.accent,
       }),
     ],
