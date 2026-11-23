@@ -1,0 +1,40 @@
+import type { Packet } from "@/features/autofill/packet";
+
+/** A packet for tests. */
+export const samplePacket: Packet = {
+  sessionId: "s",
+  expiresAt: "2026-01-01T00:00:00Z",
+  job: { title: "Developer", company: "Acme", applyUrl: "https://example.com" },
+  contact: {
+    fullName: "Jane Q Doe",
+    firstName: "Jane",
+    lastName: "Q Doe",
+    email: "jane@example.com",
+    phone: "403-555-0100",
+    location: "Calgary, AB",
+    city: "Calgary",
+    province: "Alberta",
+    provinceCode: "AB",
+    country: "Canada",
+    linkedin: "https://linkedin.com/in/jane",
+    github: "https://github.com/jane",
+    website: "https://jane.dev",
+    otherLinks: [],
+  },
+  currentRole: { title: "Senior Developer", company: "Initech" },
+  standard: {
+    workAuthorized: true,
+    needsSponsorship: false,
+    willingToRelocate: null,
+    noticePeriod: "Two weeks",
+    salaryExpectation: "",
+    howHeard: "Indeed",
+    pronouns: "",
+    gender: "",
+    ethnicity: "",
+    veteran: "",
+    disability: "",
+  },
+  saved: [],
+  documents: { resume: { fileName: "r.pdf" }, coverLetter: null },
+};

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { closeDb } from "@/db/client";
 import { getSettings } from "@/features/admin/settings";
+import { runAnswers } from "@/features/autofill/sessions";
 import { runFeedback } from "@/features/documents/feedback";
 import { generateDocument } from "@/features/documents/generate";
 import { pickForTarget } from "@/features/documents/pick";
@@ -152,6 +153,14 @@ async function main() {
     for (const job of jobs) {
       const { userId, questionId } = ratingJob.parse(job.data);
       await runRating(userId, questionId);
+    }
+  });
+
+  const answersJob = z.object({ userId: z.string(), sessionId: z.uuid() });
+  await boss.work(queues.answerApplicationQuestions, async (jobs) => {
+    for (const job of jobs) {
+      const { userId, sessionId } = answersJob.parse(job.data);
+      await runAnswers(userId, sessionId);
     }
   });
 

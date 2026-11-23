@@ -29,6 +29,9 @@ export function SiteHeader({ name, isAdmin }: Props) {
           <Link href="/companies" className="hover:text-foreground">
             Companies
           </Link>
+          <Link href="/autofill" className="hover:text-foreground">
+            Autofill
+          </Link>
           {isAdmin && (
             <Link href="/admin" className="hover:text-foreground">
               Admin

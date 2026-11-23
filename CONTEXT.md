@@ -156,6 +156,22 @@ _Avoid_: Final, ready, confirmed
 A user's pursuit of one job, which exists only once the user acts on it by saving or applying.
 _Avoid_: Suggested job, lead, card
 
+**Autofill**:
+Filling in an employer's application form in the user's own browser from their contact details, approved documents and standard answers. The user reviews the form and submits it themselves (ADR 0005).
+_Avoid_: Auto-submit, one-click apply, bot
+
+**Apply session**:
+One use of autofill for one application, opened by the user and identified by a short-lived ticket.
+_Avoid_: Apply token, apply job
+
+**Standard answers**:
+A user's answers to questions most application forms ask: work authorization, sponsorship, notice, salary expectation and self-identification.
+_Avoid_: Defaults, presets, canned answers
+
+**Saved answer**:
+A user's answer to one specific form question, kept so the same question is filled the same way next time.
+_Avoid_: Remembered response, cached answer
+
 ### People
 
 **Admin**:

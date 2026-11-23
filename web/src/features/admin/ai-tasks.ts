@@ -17,6 +17,7 @@ export const aiTasks = [
   "draftInterviewQuestions",
   "rateInterviewAnswer",
   "describeCompany",
+  "answerApplicationQuestions",
 ] as const;
 export type AiTask = (typeof aiTasks)[number];
 
@@ -36,4 +37,5 @@ export const aiTaskLabels: Record<AiTask, string> = {
   draftInterviewQuestions: "Draft interview practice questions",
   rateInterviewAnswer: "Rate an interview practice answer",
   describeCompany: "Describe a company (with web search)",
+  answerApplicationQuestions: "Answer application form questions (autofill)",
 };

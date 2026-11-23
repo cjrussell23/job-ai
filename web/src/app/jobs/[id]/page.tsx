@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApplicationPanel } from "@/features/applications/components/application-panel";
+import { AutofillCard } from "@/features/autofill/components/autofill-card";
 import { approveAction, draftAction } from "@/features/documents/actions";
 import { documentBodySchema } from "@/features/documents/body";
 import { DocumentEditor } from "@/features/documents/components/document-editor";
@@ -181,6 +182,7 @@ async function JobPage({ params }: { params: PageProps<"/jobs/[id]">["params"] }
           </ul>
         </div>
         <CompanyCard company={job.company} jobId={job.id} profile={company} />
+        <AutofillCard userId={userId} jobId={job.id} />
         <ApplicationPanel userId={userId} jobId={job.id} />
         {docs.length === 0 ? (
           <Card>

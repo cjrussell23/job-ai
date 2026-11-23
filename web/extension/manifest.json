@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Job Search autofill",
+  "version": "0.1.0",
+  "description": "Fills in job application forms from your Job Search profile. You review and submit them yourself.",
+  "background": { "service_worker": "background.js" },
+  "permissions": ["scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["__APP_ORIGIN__/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -18,6 +18,7 @@ export const queues = {
   draftInterviewQuestions: "draft-interview-questions",
   rateInterviewAnswer: "rate-interview-answer",
   describeCompany: "describe-company",
+  answerApplicationQuestions: "answer-application-questions",
 } as const;
 
 export type QueueName = (typeof queues)[keyof typeof queues];
