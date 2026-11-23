@@ -18,6 +18,8 @@ import {
   profileItems,
   profileQuestions,
   resumeUploads,
+  savedAnswers,
+  standardAnswers,
   suggestions,
   user,
 } from "@/db/schema";
@@ -47,6 +49,10 @@ export const userOwnedTables = {
   interview_questions: "exported",
   suggestions: "exported",
   profile_questions: "exported",
+  standard_answers: "exported",
+  saved_answers: "exported",
+  // Holds a ticket hash and the questions one form asked; the application itself is exported.
+  apply_sessions: "excluded: short-lived autofill tickets",
   profile_reviews: "excluded: a log of review requests",
   rescore_requests: "excluded: a log of rescore button use, kept for the daily limit",
   // A log of shared-job edits; the split itself stays, the log row goes with the member.
@@ -92,6 +98,8 @@ export async function exportUserData(userId: string) {
     summaryRows,
     practiceSets,
     practiceQuestions,
+    standardRows,
+    savedRows,
   ] = await Promise.all([
     db().select().from(profileItems).where(eq(profileItems.userId, userId)),
     db().select().from(resumeUploads).where(eq(resumeUploads.userId, userId)),
@@ -109,6 +117,8 @@ export async function exportUserData(userId: string) {
     db().select().from(matchSummaries).where(eq(matchSummaries.userId, userId)),
     db().select().from(interviewSets).where(eq(interviewSets.userId, userId)),
     db().select().from(interviewQuestions).where(eq(interviewQuestions.userId, userId)),
+    db().select().from(standardAnswers).where(eq(standardAnswers.userId, userId)),
+    db().select().from(savedAnswers).where(eq(savedAnswers.userId, userId)),
   ]);
   const history = apps.length
     ? await db()
@@ -145,6 +155,8 @@ export async function exportUserData(userId: string) {
     matchSummaries: strip(summaryRows),
     interviewSets: strip(practiceSets),
     interviewQuestions: strip(practiceQuestions),
+    standardAnswers: strip(standardRows)[0]?.answers ?? null,
+    savedAnswers: strip(savedRows),
   };
 }
 

@@ -47,7 +47,9 @@ The questions left open in the first draft are settled; SPEC.md ends with the li
 ```
 web/src/app/          routes, pages and server actions, kept thin
 web/src/features/     one folder per domain area: members, profile, targets, jobs, sources,
-                      scoring, documents, applications, feedback, notifications, admin, ai
+                      scoring, documents, applications, autofill, feedback, notifications,
+                      admin, ai
+web/extension/        the autofill browser extension (ADR 0005), built into the web image
 web/src/db/           Drizzle schema, migrations, database client
 web/src/components/   shared interface components
 web/src/lib/          shared helpers with no domain knowledge

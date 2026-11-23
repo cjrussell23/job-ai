@@ -202,3 +202,14 @@ export async function removeApplication(userId: string, id: string): Promise<Cha
     .returning({ id: applications.id });
   return deleted.length > 0 ? { ok: true } : { ok: false, reason: "not_found" };
 }
+
+/**
+ * Records that the member chose to apply with autofill (ADR 0005): the form is filled in
+ * their browser and they submit it, so the documents on the application are approved for it.
+ */
+export async function markAssisted(userId: string, id: string): Promise<void> {
+  await db()
+    .update(applications)
+    .set({ submissionMethod: "assisted", approvalState: "approved", updatedAt: sql`now()` })
+    .where(and(eq(applications.id, id), eq(applications.userId, userId)));
+}

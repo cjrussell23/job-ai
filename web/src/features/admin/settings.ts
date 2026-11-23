@@ -27,6 +27,7 @@ const settingsSchema = z.object({
       draftInterviewQuestions: z.string().min(1).default(writingModel),
       rateInterviewAnswer: z.string().min(1).default(writingModel),
       describeCompany: z.string().min(1).default(writingModel),
+      answerApplicationQuestions: z.string().min(1).default(writingModel),
     })
     .prefault({}),
   /** Monthly AI spend cap for members without their own cap, in cents. */
