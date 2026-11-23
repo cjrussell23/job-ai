@@ -92,12 +92,13 @@ async function main() {
     documentId: z.uuid(),
     jobId: z.uuid(),
     kind: z.enum(["resume", "cover_letter"]),
+    thenCoverLetterId: z.uuid().optional(),
   });
   await boss.work(queues.draftDocument, async (jobs) => {
     for (const job of jobs) {
-      const { userId, documentId, jobId, kind } = draftJob.parse(job.data);
+      const { userId, documentId, jobId, kind, thenCoverLetterId } = draftJob.parse(job.data);
       log.info({ documentId, kind }, "drafting document");
-      await generateDocument(userId, documentId, jobId, kind);
+      await generateDocument(userId, documentId, jobId, kind, thenCoverLetterId);
     }
   });
 

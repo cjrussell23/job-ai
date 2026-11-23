@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { TaskDefinition } from "@/features/ai/task";
-import { type CoverLetterInput, prompt, system, version } from "./prompt-v1";
+import { type CoverLetterInput, prompt, system, version } from "./prompt-v2";
 
 const schema = z.object({
   greeting: z.string().trim().min(1).max(120),

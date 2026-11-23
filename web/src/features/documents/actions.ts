@@ -20,9 +20,22 @@ export async function draftAction(form: FormData): Promise<void> {
   const which = form.get("kind");
   const wanted = which ? [kinds.parse(which)] : (["resume", "cover_letter"] as const);
   const boss = await queue();
-  for (const kind of wanted) {
-    const documentId = await startDocument(userId, jobId, kind);
-    await boss.send(queues.draftDocument, { userId, documentId, jobId, kind });
+  if (wanted.length === 2) {
+    // Both at once: the letter waits for the resume so it can complement it.
+    const documentId = await startDocument(userId, jobId, "resume");
+    const thenCoverLetterId = await startDocument(userId, jobId, "cover_letter");
+    await boss.send(queues.draftDocument, {
+      userId,
+      documentId,
+      jobId,
+      kind: "resume",
+      thenCoverLetterId,
+    });
+  } else {
+    for (const kind of wanted) {
+      const documentId = await startDocument(userId, jobId, kind);
+      await boss.send(queues.draftDocument, { userId, documentId, jobId, kind });
+    }
   }
   revalidatePath(`/jobs/${jobId}`);
 }
