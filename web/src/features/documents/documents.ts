@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { type Document, documents } from "@/db/schema";
 import { allLines, type DocumentBody, documentBodySchema, type Line, newId } from "./body";
+import type { Layout } from "./layout";
 
 export type { Document };
 export type DocumentKind = "resume" | "cover_letter";
@@ -82,10 +83,16 @@ export async function finishDocument(
   userId: string,
   documentId: string,
   body: DocumentBody,
+  layout?: Layout,
 ): Promise<void> {
   await db()
     .update(documents)
-    .set({ body: documentBodySchema.parse(body), state: "draft", updatedAt: sql`now()` })
+    .set({
+      body: documentBodySchema.parse(body),
+      ...(layout ? { layout } : {}),
+      state: "draft",
+      updatedAt: sql`now()`,
+    })
     .where(and(eq(documents.id, documentId), eq(documents.userId, userId)));
 }
 

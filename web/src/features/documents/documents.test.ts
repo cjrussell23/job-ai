@@ -17,7 +17,9 @@ import {
   startDocument,
 } from "./documents";
 import { generateDocument } from "./generate";
+import { readLayout } from "./layout";
 import { renderDocument } from "./render";
+import { saveStandingResume } from "./standing";
 
 let restore = () => {};
 beforeEach(resetDb);
@@ -194,4 +196,62 @@ test("rendered documents escape what the member typed", () => {
   const html = renderDocument(body);
   expect(html).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; co");
   expect(html).not.toContain("<script>");
+});
+
+describe("drafting both documents", () => {
+  test("the resume takes the standing resume's look, and the letter is written after it, seeing it", async () => {
+    const { userId, jobId, items } = await memberWithJobAndProfile();
+    const role = items.find((i) => i.type === "role");
+    const bullet = items.find((i) => i.type === "bullet");
+    const standing = await saveStandingResume(userId, null, "Main", [role?.id ?? ""], {
+      pages: 2,
+      density: "compact",
+      itemOrder: [role?.id],
+    });
+    if (!standing.ok) throw new Error("standing resume not saved");
+    const fake = fakeModel((prompt: string) =>
+      prompt.includes("Page budget")
+        ? {
+            summary: [],
+            sections: [
+              {
+                heading: "Experience",
+                entries: [
+                  {
+                    itemId: role?.id,
+                    bullets: [
+                      { text: "Built the billing API", sources: [bullet?.id], reworded: false },
+                    ],
+                  },
+                ],
+              },
+            ],
+            skills: [],
+          }
+        : {
+            greeting: "Dear Hiring Team,",
+            paragraphs: [
+              { text: "I'm applying for the role.", sources: [] },
+              { text: "Why the billing work mattered.", sources: [bullet?.id] },
+            ],
+            closing: "Sincerely,",
+          },
+    );
+    restore = fake.restore;
+    const resumeId = await startDocument(userId, jobId, "resume");
+    const letterId = await startDocument(userId, jobId, "cover_letter");
+    await generateDocument(userId, resumeId, jobId, "resume", letterId);
+
+    const resume = await getDocument(userId, resumeId);
+    const layout = readLayout(resume?.layout);
+    expect(layout).toMatchObject({ pages: 2, density: "compact" });
+    // Item choices belong to the standing resume, not to the tailored one.
+    expect(layout.itemOrder).toEqual([]);
+    expect(JSON.stringify(fake.calls[0]?.prompt)).toContain("Two pages");
+
+    expect((await getDocument(userId, letterId))?.state).toBe("draft");
+    const letterPrompt = JSON.stringify(fake.calls[1]?.prompt);
+    expect(letterPrompt).toContain("don't repeat it");
+    expect(letterPrompt).toContain("Built the billing API");
+  });
 });

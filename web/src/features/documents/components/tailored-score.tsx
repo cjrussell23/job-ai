@@ -5,6 +5,7 @@ import { readLayout } from "@/features/documents/layout";
 import { htmlToPdf, pdfPageCount } from "@/features/documents/pdf";
 import { renderResume } from "@/features/documents/render";
 import { scoreBody } from "@/features/documents/score";
+import { tailoredLayout } from "@/features/documents/standing";
 import { ScoreCard } from "./score-card";
 
 // Page counts need a real PDF render, so each version is counted once per server process.
@@ -28,6 +29,11 @@ async function pagesFor(doc: Document): Promise<number | null> {
 export async function TailoredScore({ doc }: { doc: Document }) {
   const body = resumeBodySchema.safeParse(doc.body);
   if (!body.success) return null;
+  // Resumes drafted before tailored layouts existed have none: judge them by the
+  // member's standing resume target, as a redraft would use.
+  const target = doc.layout
+    ? readLayout(doc.layout).pages
+    : (await tailoredLayout(doc.userId)).pages;
   const pages = await pagesFor(doc).catch(() => null);
   return (
     <div className="flex flex-col gap-2">
@@ -36,7 +42,7 @@ export async function TailoredScore({ doc }: { doc: Document }) {
           ? "Page count unavailable."
           : `The PDF is ${pages} page${pages === 1 ? "" : "s"}.`}
       </p>
-      <ScoreCard score={scoreBody(body.data, pages ?? 1)} />
+      <ScoreCard score={scoreBody(body.data, pages ?? 1, target)} />
     </div>
   );
 }

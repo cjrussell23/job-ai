@@ -1,11 +1,11 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
 import { type Document, documents } from "@/db/schema";
 import { documentHeader } from "@/features/profile/contact";
 import { listItems } from "@/features/profile/profile";
 import type { ResumeBody } from "./body";
-import { type Layout, layoutSchema } from "./layout";
+import { defaultLayout, type Layout, layoutSchema, readLayout } from "./layout";
 import { buildStandingBody } from "./standing-body";
 
 export { buildStandingBody, pickedItems, resumeItems } from "./standing-body";
@@ -133,4 +133,33 @@ export async function exactPageCount(
   const { htmlToPdf, pdfPageCount } = await import("./pdf");
   const { renderResume } = await import("./render");
   return pdfPageCount(await htmlToPdf(renderResume(body, { layout: layout.data })));
+}
+
+/**
+ * The look a tailored resume borrows from the member's most recently saved standing
+ * resume: page target, density, template, section order and headings. Item choices
+ * belong to that resume and are not copied. Defaults when there is no standing resume.
+ */
+export async function tailoredLayout(userId: string): Promise<Layout> {
+  const [latest] = await db()
+    .select({ layout: documents.layout })
+    .from(documents)
+    .where(
+      and(eq(documents.userId, userId), eq(documents.standing, true), eq(documents.kind, "resume")),
+    )
+    .orderBy(desc(documents.updatedAt))
+    .limit(1);
+  const from = readLayout(latest?.layout);
+  return {
+    ...defaultLayout,
+    pages: from.pages,
+    density: from.density,
+    template: from.template,
+    order: from.order,
+    headings: from.headings,
+    groupRoles: from.groupRoles,
+    showDates: from.showDates,
+    headerLinks: from.headerLinks,
+    headerIcons: from.headerIcons,
+  };
 }
