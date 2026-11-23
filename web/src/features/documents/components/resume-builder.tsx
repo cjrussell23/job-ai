@@ -39,6 +39,7 @@ import {
 } from "@/features/documents/standing-body";
 import { ResumePreview } from "./resume-preview";
 import { ScoreCard } from "./score-card";
+import { StyleControls } from "./style-controls";
 
 type Props = {
   id: string | null;
@@ -486,6 +487,7 @@ export function ResumeBuilder(props: Props) {
               ))}
             </div>
           </div>
+          <StyleControls layout={layout} update={update} />
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-1.5">
               <input

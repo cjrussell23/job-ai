@@ -1,6 +1,5 @@
-import { htmlToPdf } from "@/features/documents/pdf";
+import { documentPdf } from "@/features/documents/pdf";
 import { sharedResume } from "@/features/documents/public";
-import { renderDocument } from "@/features/documents/render";
 
 // Rendering a PDF starts Chromium, so a public link must not do it on every request:
 // keep the latest render of each shared resume until the resume is saved again.
@@ -15,7 +14,7 @@ export async function GET(_: Request, { params }: RouteContext<"/api/public/resu
   const at = shared.updatedAt.getTime();
   let pdf = rendered.get(shared.id)?.at === at ? rendered.get(shared.id)?.pdf : undefined;
   if (!pdf) {
-    pdf = await htmlToPdf(renderDocument(shared.body, { layout: shared.layout }));
+    pdf = await documentPdf(shared.body, shared.layout);
     rendered.delete(shared.id);
     if (rendered.size >= maxCached) {
       const oldest = rendered.keys().next().value;

@@ -94,7 +94,7 @@ describe("resume builder", () => {
     expect(html).toContain('href="https://blog.example.com"');
     const ungrouped = renderResume(body, { layout: { ...layout, groupRoles: false } });
     expect(ungrouped.match(/· Acme/g)).toHaveLength(2);
-    expect(renderResume(body, { layout: { ...layout, template: "classic" } })).toContain("Georgia");
+    expect(renderResume(body, { layout: { ...layout, template: "classic" } })).toContain("Gelasio");
 
     const text = renderResumeText(body);
     expect(text).toContain("EXPERIENCE");

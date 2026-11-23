@@ -14,7 +14,7 @@ export async function GET(_: Request, { params }: RouteContext<"/documents/[id]/
   const file =
     body.data.kind === "resume"
       ? await resumeToDocx(body.data, readLayout(doc.layout))
-      : await coverLetterToDocx(body.data);
+      : await coverLetterToDocx(body.data, readLayout(doc.layout));
   const name =
     `${body.data.name || "document"} ${doc.kind === "resume" ? "resume" : "cover letter"}`
       .replace(/[^\w\s-]/g, "")

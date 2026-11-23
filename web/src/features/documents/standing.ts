@@ -130,9 +130,8 @@ export async function exactPageCount(
   if (!layout.success) return null;
   const body = await bodyFor(userId, itemIds, layout.data);
   if (!body) return null;
-  const { htmlToPdf, pdfPageCount } = await import("./pdf");
-  const { renderResume } = await import("./render");
-  return pdfPageCount(await htmlToPdf(renderResume(body, { layout: layout.data })));
+  const { documentPdf, pdfPageCount } = await import("./pdf");
+  return pdfPageCount(await documentPdf(body, layout.data));
 }
 
 /**
@@ -161,5 +160,11 @@ export async function tailoredLayout(userId: string): Promise<Layout> {
     showDates: from.showDates,
     headerLinks: from.headerLinks,
     headerIcons: from.headerIcons,
+    font: from.font,
+    fontSize: from.fontSize,
+    margins: from.margins,
+    accent: from.accent,
+    repeatHeader: from.repeatHeader,
+    pageNumbers: from.pageNumbers,
   };
 }
